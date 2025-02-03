@@ -1,0 +1,22 @@
+node_modules/
+.env
+cache/
+out/
+coverage/
+coverage.json
+dist/
+.DS_Store
+*.env
+.env.*
+build/
+.vscode/
+
+# Foundry specific
+cache/
+out/
+broadcast/
+
+# Frontend specific
+dist/
+dist-ssr/
+*.local

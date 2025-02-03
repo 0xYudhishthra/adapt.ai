@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "frontend:dev": "cd frontend && pnpm dev",
+    "frontend:build": "cd frontend && pnpm build",
+    "contracts:test": "cd contracts && forge test",
+    "contracts:build": "cd contracts && forge build",
+    "dev": "pnpm contracts:build && pnpm frontend:dev"
+  }
+}
