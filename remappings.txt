@@ -1,0 +1,2 @@
+@eigenlayer/=lib/eigenlayer-contracts/src/
+forge-std/=lib/forge-std/src/ 
