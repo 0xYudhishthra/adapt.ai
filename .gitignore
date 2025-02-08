@@ -17,6 +17,7 @@ out/
 broadcast/
 
 # Frontend specific
-dist/
-dist-ssr/
-*.local
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.next/
