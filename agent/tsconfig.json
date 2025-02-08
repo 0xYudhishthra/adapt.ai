@@ -8,6 +8,5 @@
       "./agentkit": ["./agentkit/src"]
     }
   },
-  "include": ["*.ts", "agentkit/src/**/*.ts"],
   "references": [{ "path": "./agentkit" }]
 }
