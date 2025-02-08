@@ -1,44 +1,34 @@
-# Build stage
-FROM node:18-alpine as builder
+FROM node:18
 
 WORKDIR /app
 
-# Copy package files for better layer caching
+# Copy package files first
 COPY package*.json ./
+COPY agentkit/package*.json ./agentkit/
 
-# Install dependencies
-RUN npm ci
+# Install root dependencies without agentkit first
+RUN npm install --ignore-scripts
 
-# Copy the rest of the application code
-COPY . .
+# Copy agentkit source
+COPY agentkit ./agentkit/
 
-# Build TypeScript code
+# Build and install agentkit
+WORKDIR /app/agentkit
+RUN npm install
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
-
+# Return to main directory and finish installation
 WORKDIR /app
+RUN npm install
 
-# Copy package files
-COPY package*.json ./
+# Copy the rest of your application (excluding node_modules and agentkit)
+COPY .env* ./ 
+COPY tsconfig*.json ./
+COPY *.ts ./
+COPY .eslintrc* ./
+COPY .prettier* ./
 
-# Install production dependencies only
-RUN npm ci --production
+# Build your application
+RUN npm run build
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Set environment variables
-ENV NODE_ENV=production \
-    PORT=3000 \
-    OPENAI_API_KEY="" \
-    CDP_API_KEY_NAME="" \
-    CDP_API_KEY_PRIVATE_KEY=""
-
-# Expose default Node.js port
-EXPOSE 3000
-
-# Run the application in API mode
 CMD ["node", "dist/chatbot.js", "--api"]
-
