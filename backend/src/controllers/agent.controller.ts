@@ -1,4 +1,4 @@
-import { AgentService } from '../services/agent';
+import { AgentService } from '../services/agent.service';
 
 const agentService = new AgentService();
 

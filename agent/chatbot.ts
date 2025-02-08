@@ -7,6 +7,7 @@ import {
   cdpApiActionProvider,
   cdpWalletActionProvider,
   pythActionProvider,
+  multisigActionProvider,
 } from "./agentkit";
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
 import { HumanMessage } from "@langchain/core/messages";
@@ -16,6 +17,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
+import express from "express";
 
 dotenv.config();
 
@@ -95,6 +97,7 @@ async function initializeAgent() {
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
+        multisigActionProvider(),
         wethActionProvider(),
         pythActionProvider(),
         walletActionProvider(),
@@ -117,23 +120,41 @@ async function initializeAgent() {
     const memory = new MemorySaver();
     const agentConfig = { configurable: { thread_id: "CDP AgentKit Chatbot Example!" } };
 
-    // Create React Agent using the LLM and CDP AgentKit tools
-    const agent = createReactAgent({
+    // // Create React Agent using the LLM and CDP AgentKit tools
+    // const agent = createReactAgent({
+    //   llm,
+    //   tools,
+    //   checkpointSaver: memory,
+    //   messageModifier: `
+    //     You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
+    //     empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
+    //     faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
+    //     funds from the user. Before executing your first action, get the wallet details to see what network 
+    //     you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
+    //     asks you to do something you can't do with your currently available tools, you must say so, and 
+    //     encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
+    //     docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
+    //     restating your tools' descriptions unless it is explicitly requested. 
+    //     `,
+    // });
+
+     // Create React Agent using the LLM and CDP AgentKit tools
+     const agent = createReactAgent({
       llm,
       tools,
       checkpointSaver: memory,
       messageModifier: `
-        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
-        faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
-        funds from the user. Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-        asks you to do something you can't do with your currently available tools, you must say so, and 
-        encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-        docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-        restating your tools' descriptions unless it is explicitly requested.
-        `,
+      As a DeFi agent, you assist users in identifying optimal financial strategies based on their objectives and execute these strategies securely. 
+For instance, if a user has 30,000 USDC and seeks a 5% APY, you will analyze current rates across major DeFi protocols to propose a suitable strategy. 
+Upon user approval, you will create a multisignature wallet, including both the user's, your Ethereum addresses, and the operator, to manage the investment.`
+      // messageModifier: `
+      //   You are an agent that helps user take decision and execute it base on their needs on defi. For example when i have 30k
+      //   USDC and i want 5% a year you will use your tools that u have to get the APY of each protocol and make a plan for the user.
+      //   Once a plan is made you can create a multisig wallet using your actions and tools with the user address and your own address from the EVMProvider.
+      //   You can also ask user to make the multisig at first through you 
+      //   `,
     });
+
 
     // Save wallet data
     const exportedWallet = await walletProvider.exportWallet();
@@ -233,12 +254,51 @@ async function runChatMode(agent: any, config: any) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runApiRouter(agent: any, config: any) {
+  const app = express();
+  const port = process.env.PORT || 3000;
+
+  app.use(express.json());
+
+  app.post('/chat', async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const stream = await agent.stream({ messages: [new HumanMessage(message)] }, config);
+      const responses: any[] = [];
+
+      for await (const chunk of stream) {
+        if ("agent" in chunk) {
+          responses.push(chunk.agent.messages[0].content);
+        } else if ("tools" in chunk) {
+          responses.push(chunk.tools.messages[0].content); 
+        }
+      }
+
+      res.json({ responses });
+
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
 /**
- * Choose whether to run in autonomous or chat mode based on user input
+ * Choose whether to run in autonomous, chat, or API mode based on user input
  *
  * @returns Selected mode
  */
-async function chooseMode(): Promise<"chat" | "auto"> {
+async function chooseMode(): Promise<"chat" | "auto" | "api"> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -247,11 +307,11 @@ async function chooseMode(): Promise<"chat" | "auto"> {
   const question = (prompt: string): Promise<string> =>
     new Promise(resolve => rl.question(prompt, resolve));
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     console.log("\nAvailable modes:");
     console.log("1. chat    - Interactive chat mode");
     console.log("2. auto    - Autonomous action mode");
+    console.log("3. api     - API server mode");
 
     const choice = (await question("\nChoose a mode (enter number or name): "))
       .toLowerCase()
@@ -263,6 +323,9 @@ async function chooseMode(): Promise<"chat" | "auto"> {
     } else if (choice === "2" || choice === "auto") {
       rl.close();
       return "auto";
+    } else if (choice === "3" || choice === "api") {
+      rl.close();
+      return "api";
     }
     console.log("Invalid choice. Please try again.");
   }
@@ -278,8 +341,10 @@ async function main() {
 
     if (mode === "chat") {
       await runChatMode(agent, config);
-    } else {
+    } else if (mode === "auto") {
       await runAutonomousMode(agent, config);
+    } else if (mode === "api") {
+      await runApiRouter(agent, config);
     }
   } catch (error) {
     if (error instanceof Error) {

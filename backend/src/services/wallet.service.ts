@@ -27,11 +27,12 @@ export class WalletService {
 
     async createMultisig(agentId: string, agentWalletAddress: string, userWalletAddress: string) {
         try {
+            console.log(process.env.SIGNER_PRIVATE_KEY! as `0x${string}`);
             const signer = privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY! as `0x${string}`);
 
             const safeAccountConfig: SafeAccountConfig = {
                 owners: [agentWalletAddress, userWalletAddress, signer.address],
-                threshold: 3
+                threshold: 2
                 // More optional properties
               }
               
@@ -70,7 +71,7 @@ export class WalletService {
             })
 
             const {data, error} = await this.supabase
-                .from('safes')
+                .from('multisig')
                 .insert({
                     multisig_address: safeAddress,
                     agent_id: agentId,
