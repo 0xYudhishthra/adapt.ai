@@ -1,5 +1,6 @@
 {
   "packages": [
-    "frontend"
+    "frontend",
+    "backend"
   ]
 }
