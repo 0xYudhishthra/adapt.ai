@@ -4,8 +4,10 @@
     "frontend:build": "cd frontend && pnpm build",
     "contracts:test": "cd contracts && forge test",
     "contracts:build": "cd contracts && forge build",
-    "dev": "pnpm contracts:build && pnpm frontend:dev && pnpm backend:dev",
-    "backend:dev": "cd backend && pnpm start"
+    "backend:dev": "cd backend && pnpm start",
+    "agent:start": "cd agent && pnpm start",
+    "agent:build": "cd agent/agentkit && pnpm build",
+    "dev": "pnpm contracts:build && pnpm frontend:dev && pnpm backend:dev"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,5 +18,6 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/morgan": "^1.9.9"
+
   }
 }
