@@ -8,7 +8,7 @@ import {
   cdpWalletActionProvider,
   pythActionProvider,
   multisigActionProvider,
-} from "./agentkit";
+} from "@coinbase/agentkit";
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
@@ -126,35 +126,34 @@ async function initializeAgent() {
     //   tools,
     //   checkpointSaver: memory,
     //   messageModifier: `
-    //     You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-    //     empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
-    //     faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
-    //     funds from the user. Before executing your first action, get the wallet details to see what network 
-    //     you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-    //     asks you to do something you can't do with your currently available tools, you must say so, and 
-    //     encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-    //     docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-    //     restating your tools' descriptions unless it is explicitly requested. 
+    //     You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are
+    //     empowered to interact onchain using your tools. If you ever need funds, you can request them from the
+    //     faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request
+    //     funds from the user. Before executing your first action, get the wallet details to see what network
+    //     you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone
+    //     asks you to do something you can't do with your currently available tools, you must say so, and
+    //     encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to
+    //     docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from
+    //     restating your tools' descriptions unless it is explicitly requested.
     //     `,
     // });
 
-     // Create React Agent using the LLM and CDP AgentKit tools
-     const agent = createReactAgent({
+    // Create React Agent using the LLM and CDP AgentKit tools
+    const agent = createReactAgent({
       llm,
       tools,
       checkpointSaver: memory,
       messageModifier: `
       As a DeFi agent, you assist users in identifying optimal financial strategies based on their objectives and execute these strategies securely. 
 For instance, if a user has 30,000 USDC and seeks a 5% APY, you will analyze current rates across major DeFi protocols to propose a suitable strategy. 
-Upon user approval, you will create a multisignature wallet, including both the user's, your Ethereum addresses, and the operator, to manage the investment.`
+Upon user approval, you will create a multisignature wallet, including both the user's, your Ethereum addresses, and the operator, to manage the investment.`,
       // messageModifier: `
       //   You are an agent that helps user take decision and execute it base on their needs on defi. For example when i have 30k
       //   USDC and i want 5% a year you will use your tools that u have to get the APY of each protocol and make a plan for the user.
       //   Once a plan is made you can create a multisig wallet using your actions and tools with the user address and your own address from the EVMProvider.
-      //   You can also ask user to make the multisig at first through you 
+      //   You can also ask user to make the multisig at first through you
       //   `,
     });
-
 
     // Save wallet data
     const exportedWallet = await walletProvider.exportWallet();
@@ -257,16 +256,15 @@ async function runChatMode(agent: any, config: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runApiRouter(agent: any, config: any) {
   const app = express();
-  const port = process.env.PORT || 3000;
-
   app.use(express.json());
 
-  app.post('/chat', async (req, res) => {
+  // Add route handler using app.use()
+  app.use("/chat", async (req: any, res: any) => {
     try {
       const { message } = req.body;
-      
+
       if (!message) {
-        return res.status(400).json({ error: 'Message is required' });
+        return res.status(400).json({ error: "Message is required" });
       }
 
       const stream = await agent.stream({ messages: [new HumanMessage(message)] }, config);
@@ -276,21 +274,18 @@ async function runApiRouter(agent: any, config: any) {
         if ("agent" in chunk) {
           responses.push(chunk.agent.messages[0].content);
         } else if ("tools" in chunk) {
-          responses.push(chunk.tools.messages[0].content); 
+          responses.push(chunk.tools.messages[0].content);
         }
       }
 
       res.json({ responses });
-
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+  return app;
 }
 
 /**
@@ -337,14 +332,27 @@ async function chooseMode(): Promise<"chat" | "auto" | "api"> {
 async function main() {
   try {
     const { agent, config } = await initializeAgent();
-    const mode = await chooseMode();
+    // Check if --api flag is present
+    const isApiMode = process.argv.includes("--api");
+
+    let mode;
+    if (isApiMode) {
+      mode = "api";
+      console.log("Starting in API mode...");
+    } else {
+      mode = await chooseMode();
+    }
 
     if (mode === "chat") {
       await runChatMode(agent, config);
     } else if (mode === "auto") {
       await runAutonomousMode(agent, config);
     } else if (mode === "api") {
-      await runApiRouter(agent, config);
+      const app = await runApiRouter(agent, config);
+      const port = process.env.PORT || 3000;
+      app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+      });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -356,6 +364,10 @@ async function main() {
 
 if (require.main === module) {
   console.log("Starting Agent...");
+  // Log if starting in API mode
+  if (process.argv.includes("--api")) {
+    console.log("API mode detected, skipping mode selection...");
+  }
   main().catch(error => {
     console.error("Fatal error:", error);
     process.exit(1);
