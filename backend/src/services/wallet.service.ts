@@ -4,6 +4,10 @@ import Safe, { PredictedSafeProps, SafeAccountConfig } from '@safe-global/protoc
 import { createPublicClient, http } from 'viem';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import {
+  MetaTransactionData,
+  OperationType
+} from '@safe-global/types-kit'
 
 
 export class WalletService {
@@ -21,7 +25,7 @@ export class WalletService {
           })
     }
 
-    async createMultisig(agentId: string, userId: string, agentWalletAddress: string, userWalletAddress: string) {
+    async createMultisig(agentId: string, agentWalletAddress: string, userWalletAddress: string) {
         try {
             const signer = privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY! as `0x${string}`);
 
@@ -70,7 +74,6 @@ export class WalletService {
                 .insert({
                     multisig_address: safeAddress,
                     agent_id: agentId,
-                    user_id: userId,
                     agent_wallet_address: agentWalletAddress,
                     user_wallet_address: userWalletAddress,
                 })
@@ -87,6 +90,42 @@ export class WalletService {
         } catch (error) {
             throw new Error(`Failed to create multisig wallet: ${(error as Error).message}`);
         }
+    }
+
+    async signMultisigTransaction(agentId: string, agentWalletAddress: string, userWalletAddress: string) {
+      //fetch the safe address from the database 
+      const {data, error} = await this.supabase
+        .from('safes')
+        .select('*')
+        .eq('agent_id', agentId)
+        .eq('agent_wallet_address', agentWalletAddress)
+        .eq('user_wallet_address', userWalletAddress).single()
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (!data) {
+            throw new Error('Safe not found');
+        }
+
+        const safeAddress = data.multisig_address;
+
+        const safe = await Safe.init({
+            provider: baseSepolia.rpcUrls.default.http[0],
+            signer: process.env.SIGNER_PRIVATE_KEY!,
+            safeAddress: safeAddress
+        })
+
+        const safeTransactionData: MetaTransactionData = {
+          to: '0x',
+          value: '1', // 1 wei
+          data: '0x',
+          operation: OperationType.Call
+        }
+
+        // const safeTransaction = await safe.createTransaction({
+        //     safeTransactionData
+        // })
     }
 
     async checkSafeExistsOnChain(agentAddress: string, userAddress: string) {

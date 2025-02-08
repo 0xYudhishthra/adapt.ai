@@ -6,8 +6,8 @@ const router = express.Router();
 // Create multisig wallet
 router.post('/create', async (req: Request, res: Response) => {
     try {
-        const { agentId, userId, agentWalletAddress, userWalletAddress } = req.body;
-        const wallet = await createMultisigWallet(agentId, userId, agentWalletAddress, userWalletAddress);
+        const { agentId, agentWalletAddress, userWalletAddress } = req.body;
+        const wallet = await createMultisigWallet(agentId, agentWalletAddress, userWalletAddress);
         res.json({ success: true, data: wallet });
     } catch (error) {
         res.status(500).json({ success: false, error: (error as Error).message });

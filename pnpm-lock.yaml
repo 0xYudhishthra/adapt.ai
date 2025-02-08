@@ -36,6 +36,9 @@ importers:
       '@safe-global/sdk-starter-kit':
         specifier: ^1.1.4
         version: 1.1.4(typescript@5.7.3)
+      '@safe-global/types-kit':
+        specifier: ^1.0.2
+        version: 1.0.2(typescript@5.7.3)
       '@supabase/supabase-js':
         specifier: ^2.48.1
         version: 2.48.1
