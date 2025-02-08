@@ -3,6 +3,25 @@ import { ActionProvider } from "../actionProvider";
 import { Network } from "../../network";
 import { CreateAction } from "../actionDecorator";
 import { FarcasterAccountDetailsSchema, FarcasterPostCastSchema } from "./schemas";
+import { HeadersInit } from "node-fetch";
+
+interface FarcasterUser {
+object: string;
+fid: number;
+username: string;
+display_name: string;
+[key: string]: unknown;
+}
+
+interface FarcasterUsersResponse {
+users: FarcasterUser[];
+}
+
+interface FarcasterCastResponse {
+hash: string;
+threadHash: string;
+[key: string]: unknown;
+}
 
 /**
  * Configuration options for the FarcasterActionProvider.
@@ -94,7 +113,7 @@ A failure response will return a message with the Farcaster API request error:
           headers,
         },
       );
-      const { users } = await response.json();
+    const { users } = (await response.json()) as FarcasterUsersResponse;
       return `Successfully retrieved Farcaster account details:\n${JSON.stringify(users[0])}`;
     } catch (error) {
       return `Error retrieving Farcaster account details:\n${error}`;
@@ -135,7 +154,7 @@ A failure response will return a message with the Farcaster API request error:
           text: args.castText,
         }),
       });
-      const data = await response.json();
+    const data = (await response.json()) as FarcasterCastResponse;
       return `Successfully posted cast to Farcaster:\n${JSON.stringify(data)}`;
     } catch (error) {
       return `Error posting to Farcaster:\n${error}`;

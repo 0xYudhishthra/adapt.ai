@@ -3,6 +3,28 @@ import { ActionProvider } from "../actionProvider";
 import { CreateAction } from "../actionDecorator";
 import { PythFetchPriceFeedIDSchema, PythFetchPriceSchema } from "./schemas";
 
+interface PythPriceFeed {
+id: string;
+attributes: {
+    base: string;
+    [key: string]: unknown;
+};
+}
+
+interface PythPriceInfo {
+price: string;
+expo: number;
+}
+
+interface PythParsedPrice {
+price: PythPriceInfo;
+[key: string]: unknown;
+}
+
+interface PythPriceResponse {
+parsed: PythParsedPrice[];
+}
+
 /**
  * PythActionProvider is an action provider for Pyth.
  */
@@ -33,7 +55,7 @@ export class PythActionProvider extends ActionProvider {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PythPriceFeed[];
 
     if (data.length === 0) {
       throw new Error(`No price feed found for ${args.tokenSymbol}`);
@@ -80,7 +102,7 @@ action to retrieve the price feed ID before invoking the pyth_Fetch_price action
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PythPriceResponse;
     const parsedData = data.parsed;
 
     if (parsedData.length === 0) {

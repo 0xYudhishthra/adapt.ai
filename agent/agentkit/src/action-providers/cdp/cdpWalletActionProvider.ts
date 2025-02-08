@@ -61,7 +61,11 @@ map where the key is the arg name and the value is the arg value. Encode uint/in
     args: z.infer<typeof DeployContractSchema>,
   ): Promise<string> {
     try {
-      const solidityVersion = SolidityVersions[args.solidityVersion];
+    const version = args.solidityVersion;
+    if (!(version in SolidityVersions)) {
+        throw new Error(`Unsupported Solidity version: ${version}`);
+    }
+    const solidityVersion = SolidityVersions[version as keyof typeof SolidityVersions];
 
       const contract = await walletProvider.deployContract({
         solidityVersion: solidityVersion,
