@@ -27,7 +27,7 @@ export class WalletService {
 
             const safeAccountConfig: SafeAccountConfig = {
                 owners: [agentWalletAddress, userWalletAddress, signer.address],
-                threshold: 1
+                threshold: 3
                 // More optional properties
               }
               
@@ -65,6 +65,20 @@ export class WalletService {
                 hash: transactionHash
             })
 
+            const {data, error} = await this.supabase
+                .from('safes')
+                .insert({
+                    multisig_address: safeAddress,
+                    agent_id: agentId,
+                    user_id: userId,
+                    agent_wallet_address: agentWalletAddress,
+                    user_wallet_address: userWalletAddress,
+                })
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
             return {
                 safeAddress,
                 transactionHash
@@ -97,7 +111,7 @@ export class WalletService {
           const safeAddress = await protocolKit.getAddress()
 
           try {
-            const deploymentTransaction = await protocolKit.createSafeDeploymentTransaction() 
+            await protocolKit.createSafeDeploymentTransaction() 
             return false;
           } catch (error) {
             if (error instanceof Error && error.message.includes('Safe already exists')) {
