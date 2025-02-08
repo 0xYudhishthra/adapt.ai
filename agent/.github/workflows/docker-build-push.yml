@@ -40,4 +40,3 @@ jobs:
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             CDP_API_KEY_NAME=${{ secrets.CDP_API_KEY_NAME }}
             CDP_API_KEY_PRIVATE_KEY=${{ secrets.CDP_API_KEY_PRIVATE_KEY }}
-
