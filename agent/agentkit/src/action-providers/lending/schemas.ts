@@ -44,11 +44,16 @@ Choose a Chedda Finance investment strategy:
 export const SupplySchema = z
   .object({
     category: InvestmentCategory.describe("The investment category you want to invest in"),
-    amount: z.custom<bigint>().describe("The amount to supply"),
+    amount: z.string().describe("The amount to supply"),
     useAsCollateral: z
       .boolean()
       .default(false)
       .describe("Whether to use the supplied amount as collateral"),
+    account: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
+      .optional()
+      .describe("The wallet address to supply from. If not provided, please ask the user for their wallet address."),
   })
   .strip()
   .describe("Instructions for supplying assets to a lending vault");
@@ -56,7 +61,12 @@ export const SupplySchema = z
 export const WithdrawSchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to withdraw from"),
-    amount: z.custom<bigint>().describe("The amount to withdraw"),
+    amount: z.string().describe("The amount to withdraw"),
+    account: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
+      .optional()
+      .describe("The wallet address to withdraw to. If not provided, please ask the user for their wallet address."),
   })
   .strip()
   .describe("Instructions for withdrawing assets from a lending vault");
@@ -64,7 +74,12 @@ export const WithdrawSchema = z
 export const BorrowSchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to borrow from"),
-    amount: z.custom<bigint>().describe("The amount to borrow"),
+    amount: z.string().describe("The amount to borrow"),
+    account: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
+      .optional()
+      .describe("The wallet address to borrow to. If not provided, please ask the user for their wallet address."),
   })
   .strip()
   .describe("Instructions for borrowing assets from a lending vault");
@@ -72,7 +87,12 @@ export const BorrowSchema = z
 export const RepaySchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to repay to"),
-    amount: z.custom<bigint>().describe("The amount to repay"),
+    amount: z.string().describe("The amount to repay"),
+    account: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
+      .optional()
+      .describe("The wallet address to repay from. If not provided, please ask the user for their wallet address."),
   })
   .strip()
   .describe("Instructions for repaying borrowed assets");
@@ -84,12 +104,23 @@ export const GetPoolInfoSchema = z
   .strip()
   .describe("Get detailed information about a lending pool");
 
+// Add a wallet address validation helper
+const walletAddressSchema = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
+  .describe("The wallet address in the format 0x...");
+
+// Update GetAccountInfoSchema to make account optional
 export const GetAccountInfoSchema = z
   .object({
     category: InvestmentCategory.describe(
       "The investment category to get account information from",
     ),
-    account: z.string().describe("The account address to get information about"),
+    account: walletAddressSchema
+      .optional()
+      .describe(
+        "The account address to get information about. If not provided, please ask the user for their wallet address.",
+      ),
   })
   .strip()
   .describe("Get detailed account information for a lending pool");

@@ -73,7 +73,7 @@ export class MultisigActionProvider extends ActionProvider<EvmWalletProvider> {
             },
             body: JSON.stringify({
                 agentId: args.agentId,
-                agentAddress: args.agentAddress,
+                agentAddress: walletProvider.getAddress(),
                 userAddress: args.userAddress,
             }),
         });

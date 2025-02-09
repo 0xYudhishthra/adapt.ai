@@ -96,19 +96,30 @@ Use correct token (USDC/WETH) per strategy
   async supply(
     wallet: EvmWalletProvider,
     args: z.infer<typeof SupplySchema>,
-  ): Promise<CallDataResponse> {
-    const vault = VAULTS["base-sepolia"][args.category];
-    const data = generateSupplyCalldata(
-      args.amount,
-      wallet.getAddress() as `0x${string}`,
-      args.useAsCollateral,
-    );
+  ): Promise<CallDataResponse | string> {
+    try {
+      if (!args.account) {
+        return "Please provide your wallet address to supply assets. The address should be in the format 0x... (42 characters long)";
+      }
 
-    return {
-      to: vault.address as Hex,
-      data,
-      description: `Supply ${args.amount} ${vault.depositToken} to ${args.category} vault`,
-    };
+      const vault = VAULTS["base-sepolia"][args.category];
+      const data = generateSupplyCalldata(
+        BigInt(args.amount),
+        args.account as `0x${string}`,
+        args.useAsCollateral,
+      );
+
+      return {
+        to: vault.address as Hex,
+        data,
+        description: `Supply ${args.amount} ${vault.depositToken} to ${args.category} vault from ${args.account}`,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("invalid address")) {
+        return "The provided wallet address is invalid. Please provide a valid Ethereum address in the format 0x... (42 characters long)";
+      }
+      throw error;
+    }
   }
 
   @CreateAction({
@@ -119,19 +130,30 @@ Use correct token (USDC/WETH) per strategy
   async withdraw(
     wallet: EvmWalletProvider,
     args: z.infer<typeof WithdrawSchema>,
-  ): Promise<CallDataResponse> {
-    const vault = VAULTS["base-sepolia"][args.category];
-    const data = generateWithdrawCalldata(
-      args.amount,
-      wallet.getAddress() as `0x${string}`,
-      wallet.getAddress() as `0x${string}`,
-    );
+  ): Promise<CallDataResponse | string> {
+    try {
+      if (!args.account) {
+        return "Please provide your wallet address to withdraw assets. The address should be in the format 0x... (42 characters long)";
+      }
 
-    return {
-      to: vault.address as Hex,
-      data,
-      description: `Withdraw ${args.amount} ${vault.depositToken} from ${args.category} vault`,
-    };
+      const vault = VAULTS["base-sepolia"][args.category];
+      const data = generateWithdrawCalldata(
+        BigInt(args.amount),
+        args.account as `0x${string}`,
+        args.account as `0x${string}`,
+      );
+
+      return {
+        to: vault.address as Hex,
+        data,
+        description: `Withdraw ${args.amount} ${vault.depositToken} from ${args.category} vault to ${args.account}`,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("invalid address")) {
+        return "The provided wallet address is invalid. Please provide a valid Ethereum address in the format 0x... (42 characters long)";
+      }
+      throw error;
+    }
   }
 
   @CreateAction({
@@ -144,7 +166,7 @@ Use correct token (USDC/WETH) per strategy
     args: z.infer<typeof BorrowSchema>,
   ): Promise<CallDataResponse> {
     const vault = VAULTS["base-sepolia"][args.category];
-    const data = generateBorrowCalldata(args.amount);
+    const data = generateBorrowCalldata(BigInt(args.amount));
 
     return {
       to: vault.address as Hex,
@@ -163,7 +185,7 @@ Use correct token (USDC/WETH) per strategy
     args: z.infer<typeof RepaySchema>,
   ): Promise<CallDataResponse> {
     const vault = VAULTS["base-sepolia"][args.category];
-    const data = generateRepayCalldata(args.amount);
+    const data = generateRepayCalldata(BigInt(args.amount));
 
     return {
       to: vault.address as Hex,
@@ -262,35 +284,46 @@ Use correct token (USDC/WETH) per strategy
   async getAccountInfo(
     wallet: EvmWalletProvider,
     args: z.infer<typeof GetAccountInfoSchema>,
-  ): Promise<AccountInfo> {
-    const vault = VAULTS["base-sepolia"][args.category];
-    const [healthFactor, supplied, borrowed] = await Promise.all([
-      wallet.readContract({
-        address: vault.address as `0x${string}`,
-        abi: LENDING_POOL_VIEW_ABI,
-        functionName: "accountHealth",
-        args: [args.account as `0x${string}`],
-      }),
-      wallet.readContract({
-        address: vault.address as `0x${string}`,
-        abi: LENDING_POOL_VIEW_ABI,
-        functionName: "assetBalance",
-        args: [args.account as `0x${string}`],
-      }),
-      wallet.readContract({
-        address: vault.address as `0x${string}`,
-        abi: LENDING_POOL_VIEW_ABI,
-        functionName: "accountAssetsBorrowed",
-        args: [args.account as `0x${string}`],
-      }),
-    ]);
+  ): Promise<AccountInfo | string> {
+    try {
+      if (!args.account) {
+        return "Please provide your wallet address to check account information. The address should be in the format 0x... (42 characters long)";
+      }
 
-    return {
-      healthFactor: healthFactor as bigint,
-      supplied: supplied as bigint,
-      borrowed: borrowed as bigint,
-      depositToken: vault.depositToken,
-    };
+      const vault = VAULTS["base-sepolia"][args.category];
+      const [healthFactor, supplied, borrowed] = await Promise.all([
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "accountHealth",
+          args: [args.account as `0x${string}`],
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "assetBalance",
+          args: [args.account as `0x${string}`],
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "accountAssetsBorrowed",
+          args: [args.account as `0x${string}`],
+        }),
+      ]);
+
+      return {
+        healthFactor: healthFactor as bigint,
+        supplied: supplied as bigint,
+        borrowed: borrowed as bigint,
+        depositToken: vault.depositToken,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("invalid address")) {
+        return "The provided wallet address is invalid. Please provide a valid Ethereum address in the format 0x... (42 characters long)";
+      }
+      throw error;
+    }
   }
 
   supportsNetwork(network: Network): boolean {
