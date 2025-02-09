@@ -80,8 +80,12 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
     const data = await response.json();
     // Handle the string log format
     if (typeof data.log === 'string') {
-      //setLogs(data.log, ...logs);
-    
+      const log: TEELog = {
+        timestamp: new Date(),
+        level: "info",
+        message: data.log,
+      }
+      setLogs([log, ...logs]);
     }
     // Handle array format if available
     return Array.isArray(data.log) ? data.log : [];
