@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createMultisigWallet, signMultisig } from '../controllers/wallet.controller';
+import { createMultisigWallet, getMultisigWallet, signMultisig } from '../controllers/wallet.controller';
 
 const router = express.Router();
 
@@ -10,6 +10,17 @@ router.post('/create', async (req: Request, res: Response) => {
         const { agentId, agentAddress, userAddress } = req.body;
         const wallet = await createMultisigWallet(agentId, agentAddress, userAddress);
         res.json({ success: true, data: wallet });
+    } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+    }
+});
+
+// Get the multisig wallet 
+router.post('/get/multisig', async (req: Request, res: Response) => {
+    try {
+        const { agentAddress, userAddress } = req.body;
+        const wallet = await getMultisigWallet(agentAddress, userAddress);
+        res.json({ success: true, multisig_address: wallet.multisig_address });
     } catch (error) {
         res.status(500).json({ success: false, error: (error as Error).message });
     }

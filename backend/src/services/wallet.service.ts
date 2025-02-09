@@ -140,6 +140,20 @@ export class WalletService {
         return executeTxResponse
     }
 
+    async getMultisigWallet(agentAddress: string, userAddress: string) {
+        const {data, error} = await this.supabase
+            .from('multisig')
+            .select('*')
+            .eq('agent_wallet_address', agentAddress)
+            .eq('user_wallet_address', userAddress).single()
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        return data;
+    }
+
     async checkSafeExistsOnChain(agentAddress: string, userAddress: string) {
         const signer = privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY! as `0x${string}` || '0xc23b8cf3ed10f078dba6b9432c3de1b9257051d201fc87dd0ef687805fed165e');
         const safeAccountConfig: SafeAccountConfig = {
