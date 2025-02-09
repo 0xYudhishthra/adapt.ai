@@ -117,78 +117,87 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] h-[90vh] p-6">
+      <DialogContent className="sm:max-w-[800px] h-[90vh] overflow-hidden p-6">
         <DialogTitle className="sr-only">Chat Dialog</DialogTitle>
         <Tabs defaultValue="chat" className="h-full flex flex-col">
           <TabsList className="mb-4">
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="logs">TEE Logs</TabsTrigger>
           </TabsList>
-          <TabsContent value="chat" className="flex-1 flex flex-col data-[state=active]:flex">
-            <div className="flex-1 flex flex-col">
-              <ScrollArea className="flex-1 pr-4 h-[calc(90vh-160px)]">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`mb-4 flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
+
+          <TabsContent 
+            value="chat" 
+            className="flex-1 flex flex-col data-[state=active]:flex overflow-hidden"
+          >
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <ScrollArea className="flex-1">
+                <div className="pr-4 space-y-4">
+                  {messages.map((message) => (
                     <div
-                      className={`rounded-lg px-4 py-2 max-w-[80%] whitespace-normal break-words ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
+                      key={message.id}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      {message.content}
+                      <div
+                        className={`rounded-lg px-4 py-2 max-w-[85%] break-all whitespace-pre-wrap ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {message.content}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {strategy && (
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="flex flex-wrap items-center justify-between gap-2">
-                        {strategy.title}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          Status: {strategy.status}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="mb-2 break-words">
-                        {strategy.description}
-                      </p>
-                      <ul className="list-inside list-disc space-y-1 break-words">
-                        {strategy.steps.map((step, index) => (
-                          <li key={index} className="break-words">
-                            {step}
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="mt-4 break-words">
-                        Required Capital: ${strategy.requiredCapital}
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      {strategy.status === "draft" && (
-                        <Button onClick={createMultisigWallet} disabled={isCreatingMultisig} className="w-full">
-                          {isCreatingMultisig && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Create Multisig & Execute Strategy
-                        </Button>
-                      )}
-                      {multisig && (
-                        <div className="w-full text-center text-sm text-muted-foreground">
-                          Multisig created at {multisig.address}
-                        </div>
-                      )}
-                    </CardFooter>
-                  </Card>
-                )}
+                  ))}
+                  {strategy && (
+                    <Card className="mt-4">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex flex-wrap items-center justify-between gap-2">
+                          <span className="break-all">{strategy.title}</span>
+                          <span className="text-sm font-normal text-muted-foreground">
+                            Status: {strategy.status}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <p className="text-sm break-all whitespace-pre-wrap">
+                          {strategy.description}
+                        </p>
+                        <ul className="list-inside list-disc space-y-1">
+                          {strategy.steps.map((step, index) => (
+                            <li key={index} className="text-sm break-all whitespace-pre-wrap">
+                              {step}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-3 text-sm">
+                          Required Capital: ${strategy.requiredCapital}
+                        </p>
+                      </CardContent>
+                      <CardFooter>
+                        {strategy.status === "draft" && (
+                          <Button 
+                            onClick={createMultisigWallet} 
+                            disabled={isCreatingMultisig} 
+                            className="w-full"
+                          >
+                            {isCreatingMultisig && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Create Multisig & Execute Strategy
+                          </Button>
+                        )}
+                        {multisig && (
+                          <div className="w-full text-center text-sm text-muted-foreground break-all">
+                            Multisig created at {multisig.address}
+                          </div>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  )}
+                </div>
               </ScrollArea>
-              <form onSubmit={handleSend} className="mt-4 flex gap-2">
+
+              <form onSubmit={handleSend} className="mt-4 flex gap-2 pt-4 border-t">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -201,12 +210,15 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
               </form>
             </div>
           </TabsContent>
+
           <TabsContent 
             value="logs" 
             className="flex-1 data-[state=active]:flex flex-col overflow-hidden"
           >
-            <ScrollArea className="flex-1 h-[calc(90vh-160px)]">
-              <TEELogs logs={teeLogs} />
+            <ScrollArea className="flex-1">
+              <div className="pr-4">
+                <TEELogs logs={teeLogs} />
+              </div>
             </ScrollArea>
           </TabsContent>
         </Tabs>
