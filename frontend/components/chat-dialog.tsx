@@ -48,7 +48,7 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
       let parsedInput = JSON.stringify({ message: input })
       console.log(parsedInput)
 
-      const response = await fetch('http://127.0.0.1:3000/chat', {
+      const response = await fetch('https://autonome.alt.technology/adapt-ai-ofrszk/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
