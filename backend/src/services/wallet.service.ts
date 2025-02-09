@@ -145,13 +145,17 @@ export class WalletService {
             .from('multisig')
             .select('*')
             .eq('agent_wallet_address', agentAddress)
-            .eq('user_wallet_address', userAddress).single()
+            .eq('user_wallet_address', userAddress)
 
         if (error) {
             throw new Error(error.message);
         }
 
-        return data;
+        if (data.length === 0) {
+            throw new Error('Safe not found');
+        }
+
+        return data[0].multisig_address;
     }
 
     async checkSafeExistsOnChain(agentAddress: string, userAddress: string) {
