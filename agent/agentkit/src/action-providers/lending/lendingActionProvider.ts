@@ -114,7 +114,7 @@ Use correct token (USDC/WETH) per strategy
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          agentAddress: await wallet.getAddress(), // await the promise
+          agentAddress: "0xaBE54D153B59DB5552790E252f26d9708856669f", // await the promise
           userAddress: args.account,
         }),
       });
@@ -134,7 +134,7 @@ Use correct token (USDC/WETH) per strategy
           },
           body: JSON.stringify({
             agentId: args.agentId,
-            agentAddress: await wallet.getAddress(), // await the promise
+            agentAddress: "0xaBE54D153B59DB5552790E252f26d9708856669f",
             userAddress: args.account,
           }),
         });
@@ -161,7 +161,7 @@ Use correct token (USDC/WETH) per strategy
       );
 
       const walletData =
-        '{"walletId":"28262c4d-ffbb-459c-8d58-d5f10ce188dd","seed":"0xe3598d59150b1bedcffee60613127a3e05fc9fed362358485ac420507ff82c3e","networkId":"base-sepolia"}';
+        '{"walletId":"28262c4d-ffbb-459c-8d58-d5f10ce188dd","seed":"0x110124ce68279df1308488fe743c51dc003d5df4083afbd7c1be94756ed3d3e4","networkId":"base-sepolia"}';
 
       const walletDataJson = JSON.parse(walletData);
 
@@ -169,7 +169,7 @@ Use correct token (USDC/WETH) per strategy
 
       const protocolKitOwner1 = await Safe.init({
         provider: baseSepolia.rpcUrls.default.http[0],
-        signer: walletDataJson.seed,
+        signer: "0x110124ce68279df1308488fe743c51dc003d5df4083afbd7c1be94756ed3d3e4",
         safeAddress: multisig,
       });
 
@@ -198,7 +198,7 @@ Use correct token (USDC/WETH) per strategy
         safeAddress: multisig,
         safeTransactionData: safeTransaction.data,
         safeTxHash,
-        senderAddress: await wallet.getAddress(),
+        senderAddress: "0xaBE54D153B59DB5552790E252f26d9708856669f",
         senderSignature: senderSignature.data,
       });
 

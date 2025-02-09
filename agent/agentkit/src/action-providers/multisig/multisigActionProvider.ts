@@ -6,14 +6,14 @@ import { EvmWalletProvider } from "../../wallet-providers";
 import { CreateMultisigSchema, GetMultisigDetailsSchema } from "./schemas";
 
 interface CreateMultisigResponse {
-    success: boolean;
-    data: {
-        safeAddress: string;
-        transactionHash: string;
-    }
+  success: boolean;
+  data: {
+    safeAddress: string;
+    transactionHash: string;
+  };
 }
 
-/** 
+/**
  * MutlisigActionProvider is an action provider for creating multisig wallets.
  */
 export class MultisigActionProvider extends ActionProvider<EvmWalletProvider> {
@@ -38,15 +38,18 @@ export class MultisigActionProvider extends ActionProvider<EvmWalletProvider> {
       userAddress: z.string().describe("The address of the user's wallet"),
     }),
   })
-  async getMultisigDetails(wallet: EvmWalletProvider, args: z.infer<typeof GetMultisigDetailsSchema>): Promise<string>{
+  async getMultisigDetails(
+    wallet: EvmWalletProvider,
+    args: z.infer<typeof GetMultisigDetailsSchema>,
+  ): Promise<string> {
     try {
-        console.log(args);
-        return `Multisig details for agent ${args.agentId} and multisig address ${args.multisigAddress} by agent address ${args.agentAddress} and user address ${args.userAddress}`;
+      console.log(args);
+      return `Multisig details for agent ${args.agentId} and multisig address ${args.multisigAddress} by agent address ${args.agentAddress} and user address ${args.userAddress}`;
     } catch (error) {
-        return `Error getting multisig details: ${error}`;
+      return `Error getting multisig details: ${error}`;
     }
   }
-  
+
   @CreateAction({
     name: "create_multisig",
     description: `
@@ -60,33 +63,35 @@ export class MultisigActionProvider extends ActionProvider<EvmWalletProvider> {
       userAddress: z.string().describe("The address of the user's wallet"),
     }),
   })
-  async createMultisig(walletProvider: EvmWalletProvider, args: z.infer<typeof CreateMultisigSchema>): Promise<string> {
+  async createMultisig(
+    walletProvider: EvmWalletProvider,
+    args: z.infer<typeof CreateMultisigSchema>,
+  ): Promise<string> {
     try {
-        console.log(args);
-        // it will create a multisig wallet for the agent and the user
-        const result = await fetch(`http://localhost:3000/api/wallet/create`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Add any authentication headers if needed
-                // 'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                agentId: args.agentId,
-                agentAddress: walletProvider.getAddress(),
-                userAddress: args.userAddress,
-            }),
-        });
+      console.log(args);
+      // it will create a multisig wallet for the agent and the user
+      const result = await fetch(`http://localhost:3000/api/wallet/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Add any authentication headers if needed
+          // 'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          agentId: args.agentId,
+          agentAddress: "0xaBE54D153B59DB5552790E252f26d9708856669f",
+          userAddress: args.userAddress,
+        }),
+      });
 
-        if (!result.ok) {
-            throw new Error(`Failed to create multisig: ${result.statusText}`);
-        }
+      if (!result.ok) {
+        throw new Error(`Failed to create multisig: ${result.statusText}`);
+      }
 
-        const data = await result.json() as CreateMultisigResponse;
-        return `Multisig created for agent ${data.data.safeAddress} and the Hash: ${data.data.transactionHash}`;
-
-    }catch(error) {
-        return `Error creating multisig: ${error}`;
+      const data = (await result.json()) as CreateMultisigResponse;
+      return `Multisig created for agent ${data.data.safeAddress} and the Hash: ${data.data.transactionHash}`;
+    } catch (error) {
+      return `Error creating multisig: ${error}`;
     }
   }
 
