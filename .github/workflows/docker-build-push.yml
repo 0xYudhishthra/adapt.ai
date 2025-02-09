@@ -36,6 +36,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64
           build-args: |
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             CDP_API_KEY_NAME=${{ secrets.CDP_API_KEY_NAME }}

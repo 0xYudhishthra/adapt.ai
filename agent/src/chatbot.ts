@@ -267,6 +267,11 @@ async function runApiRouter(agent: any, config: any) {
         return res.status(400).json({ error: "Message is required" });
       }
 
+      //Accept the following request: Request payload: {"message":"healthz"}
+      if (message === "healthz") {
+        return res.status(200).json({ status: "ok" });
+      }
+
       const stream = await agent.stream({ messages: [new HumanMessage(message)] }, config);
       const responses: any[] = [];
 
