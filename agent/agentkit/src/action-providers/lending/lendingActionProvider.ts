@@ -10,7 +10,6 @@ import {
   RepaySchema,
   GetPoolInfoSchema,
   GetAccountInfoSchema,
-  GetPortfolioSchema,
 } from "./schemas";
 import {
   generateSupplyCalldata,
@@ -51,41 +50,6 @@ interface AccountInfo {
   supplied: bigint;
   borrowed: bigint;
   depositToken: string;
-  formatted: {
-    healthFactor: string;
-    supplied: string;
-    borrowed: string;
-    healthStatus: string;
-    riskLevel: string;
-  };
-}
-
-interface PortfolioInfo {
-  totalSupplied: bigint;
-  totalBorrowed: bigint;
-  totalCollateralValue: bigint;
-  overallHealth: bigint;
-  positions: {
-    category: string;
-    supplied: bigint;
-    borrowed: bigint;
-    healthFactor: bigint;
-    collateralValue: bigint;
-  }[];
-  formatted: {
-    totalSupplied: string;
-    totalBorrowed: string;
-    totalCollateralValue: string;
-    overallHealth: string;
-    healthStatus: string;
-    positions: {
-      category: string;
-      supplied: string;
-      borrowed: string;
-      healthFactor: string;
-      collateralValue: string;
-    }[];
-  };
 }
 
 export class LendingActionProvider extends ActionProvider<EvmWalletProvider> {
@@ -217,89 +181,82 @@ Use correct token (USDC/WETH) per strategy
   async getPoolInfo(
     wallet: EvmWalletProvider,
     args: z.infer<typeof GetPoolInfoSchema>,
-  ): Promise<PoolInfo> {
-    try {
-      if (!VAULTS["base-sepolia"][args.category]) {
-        throw new Error(`Invalid vault category: ${args.category}`);
-      }
+  ): Promise<string> {
+    const vault = VAULTS["base-sepolia"][args.category];
+    const [supplyAPY, borrowAPY, totalSupplied, totalBorrowed, supplyCap] = await Promise.all([
+      wallet.readContract({
+        address: vault.address as `0x${string}`,
+        abi: LENDING_POOL_VIEW_ABI,
+        functionName: "baseSupplyAPY",
+      }),
+      wallet.readContract({
+        address: vault.address as `0x${string}`,
+        abi: LENDING_POOL_VIEW_ABI,
+        functionName: "baseBorrowAPY",
+      }),
+      wallet.readContract({
+        address: vault.address as `0x${string}`,
+        abi: LENDING_POOL_VIEW_ABI,
+        functionName: "supplied",
+      }),
+      wallet.readContract({
+        address: vault.address as `0x${string}`,
+        abi: LENDING_POOL_VIEW_ABI,
+        functionName: "borrowed",
+      }),
+      wallet.readContract({
+        address: vault.address as `0x${string}`,
+        abi: LENDING_POOL_VIEW_ABI,
+        functionName: "supplyCap",
+      }),
+    ]);
 
-      const vault = VAULTS["base-sepolia"][args.category];
+    const utilizationRate =
+      totalSupplied === BigInt(0)
+        ? "0%"
+        : `${((Number(totalBorrowed) * 100) / Number(totalSupplied)).toFixed(2)}%`;
 
-      const [supplyAPY, borrowAPY, totalSupplied, totalBorrowed, supplyCap] = await Promise.all([
-        wallet.readContract({
-          address: vault.address as `0x${string}`,
-          abi: LENDING_POOL_VIEW_ABI,
-          functionName: "baseSupplyAPY",
-        }),
-        wallet.readContract({
-          address: vault.address as `0x${string}`,
-          abi: LENDING_POOL_VIEW_ABI,
-          functionName: "baseBorrowAPY",
-        }),
-        wallet.readContract({
-          address: vault.address as `0x${string}`,
-          abi: LENDING_POOL_VIEW_ABI,
-          functionName: "supplied",
-        }),
-        wallet.readContract({
-          address: vault.address as `0x${string}`,
-          abi: LENDING_POOL_VIEW_ABI,
-          functionName: "borrowed",
-        }),
-        wallet.readContract({
-          address: vault.address as `0x${string}`,
-          abi: LENDING_POOL_VIEW_ABI,
-          functionName: "supplyCap",
-        }),
-      ]);
+    const formatBigNumber = (value: BigInt) => {
+      const num = Number(value);
+      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+      return num.toString();
+    };
 
-      const supplyAPYBigInt = BigInt(supplyAPY as string | number);
-      const borrowAPYBigInt = BigInt(borrowAPY as string | number);
-      const totalSuppliedBigInt = BigInt(totalSupplied as string | number);
-      const totalBorrowedBigInt = BigInt(totalBorrowed as string | number);
-      const supplyCapBigInt = BigInt(supplyCap as string | number);
+    const formatAPY = (value: BigInt) => {
+      const num = Number(value);
+      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+      return num.toString();
+    };
 
-      const utilizationRate =
-        totalSuppliedBigInt === 0n
-          ? "0%"
-          : `${(Number((totalBorrowedBigInt * 10000n) / totalSuppliedBigInt) / 100).toFixed(2)}%`;
+    let convertedTotalSupplied = formatBigNumber(BigInt(totalSupplied as any));
+    let convertedTotalBorrowed = Number(BigInt(totalBorrowed as any)).toString();
+    let convertedSupplyCap = Number(BigInt(supplyCap as any)).toString();
+    let convertedSupplyAPY = formatAPY(BigInt(supplyAPY as any));
+    let convertedBorrowAPY = formatAPY(BigInt(borrowAPY as any));
 
-      const formatBigNumber = (value: bigint) => {
-        const numStr = value.toString();
-        const num = Number(numStr);
-        if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-        if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-        return num.toString();
-      };
+    const payload = {
+      supplyAPY: convertedSupplyAPY,
+      borrowAPY: convertedBorrowAPY,
+      totalSupplied: convertedTotalSupplied,
+      totalBorrowed: convertedTotalBorrowed,
+      supplyCap: convertedSupplyCap,
+      utilizationRate,
+      depositToken: vault.depositToken,
+      formatted: {
+        supplyAPY: convertedSupplyAPY,
+        borrowAPY: convertedBorrowAPY,
+        totalSupplied: convertedTotalSupplied,
+      },
+    };
 
-      const formatAPY = (value: bigint) => `${(Number(value) / 1e16).toFixed(2)}%`;
-
-      return {
-        supplyAPY: supplyAPYBigInt,
-        borrowAPY: borrowAPYBigInt,
-        totalSupplied: totalSuppliedBigInt,
-        totalBorrowed: totalBorrowedBigInt,
-        supplyCap: supplyCapBigInt,
-        utilizationRate,
-        depositToken: vault.depositToken,
-        formatted: {
-          supplyAPY: formatAPY(supplyAPYBigInt),
-          borrowAPY: formatAPY(borrowAPYBigInt),
-          totalSupplied: formatBigNumber(totalSuppliedBigInt),
-          totalBorrowed: formatBigNumber(totalBorrowedBigInt),
-          supplyCap: formatBigNumber(supplyCapBigInt),
-        },
-      };
-    } catch (error) {
-      console.error("Error in getPoolInfo:", error);
-      throw error;
-    }
+    return JSON.stringify(payload);
   }
 
   @CreateAction({
     name: "get_account_info",
-    description:
-      "Get detailed account information and health metrics for a Chedda Finance lending position",
+    description: "Get detailed account information for a lending pool",
     schema: GetAccountInfoSchema,
   })
   async getAccountInfo(
@@ -328,147 +285,11 @@ Use correct token (USDC/WETH) per strategy
       }),
     ]);
 
-    const formatBigNumber = (value: bigint) => {
-      const num = Number(value);
-      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-      return num.toFixed(2);
-    };
-
-    const getHealthStatus = (health: bigint) => {
-      const healthNum = Number(health) / 1e18;
-      if (healthNum >= 2) return "Excellent";
-      if (healthNum >= 1.5) return "Strong";
-      if (healthNum >= 1.2) return "Good";
-      if (healthNum >= 1.1) return "Moderate";
-      if (healthNum >= 1.0) return "Caution";
-      return "At Risk";
-    };
-
-    const getRiskLevel = (health: bigint) => {
-      const healthNum = Number(health) / 1e18;
-      if (healthNum >= 2) return "Very Low";
-      if (healthNum >= 1.5) return "Low";
-      if (healthNum >= 1.2) return "Moderate";
-      if (healthNum >= 1.1) return "High";
-      return "Very High";
-    };
-
     return {
       healthFactor: healthFactor as bigint,
       supplied: supplied as bigint,
       borrowed: borrowed as bigint,
       depositToken: vault.depositToken,
-      formatted: {
-        healthFactor: `${(Number(healthFactor) / 1e18).toFixed(2)}`,
-        supplied: `${formatBigNumber(supplied as bigint)} ${vault.depositToken}`,
-        borrowed: `${formatBigNumber(borrowed as bigint)} ${vault.depositToken}`,
-        healthStatus: getHealthStatus(healthFactor as bigint),
-        riskLevel: getRiskLevel(healthFactor as bigint),
-      },
-    };
-  }
-
-  @CreateAction({
-    name: "get_portfolio",
-    description: "Get comprehensive portfolio overview across all Chedda Finance pools",
-    schema: GetPortfolioSchema,
-  })
-  async getPortfolio(
-    wallet: EvmWalletProvider,
-    args: z.infer<typeof GetPortfolioSchema>,
-  ): Promise<PortfolioInfo> {
-    const categories = Object.keys(VAULTS["base-sepolia"]);
-    const positions = await Promise.all(
-      categories.map(async category => {
-        const vault = VAULTS["base-sepolia"][category as keyof (typeof VAULTS)["base-sepolia"]];
-        const [healthFactor, supplied, borrowed, collateralValue] = await Promise.all([
-          wallet.readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "accountHealth",
-            args: [args.account as `0x${string}`],
-          }),
-          wallet.readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "assetBalance",
-            args: [args.account as `0x${string}`],
-          }),
-          wallet.readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "accountAssetsBorrowed",
-            args: [args.account as `0x${string}`],
-          }),
-          wallet.readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "totalAccountCollateralValue",
-            args: [args.account as `0x${string}`],
-          }),
-        ]);
-
-        return {
-          category,
-          supplied: supplied as bigint,
-          borrowed: borrowed as bigint,
-          healthFactor: healthFactor as bigint,
-          collateralValue: collateralValue as bigint,
-        };
-      }),
-    );
-
-    // Calculate totals
-    const activePositions = positions.filter(p => p.supplied > 0n || p.borrowed > 0n);
-    const totalSupplied = activePositions.reduce((acc, p) => acc + p.supplied, 0n);
-    const totalBorrowed = activePositions.reduce((acc, p) => acc + p.borrowed, 0n);
-    const totalCollateralValue = activePositions.reduce((acc, p) => acc + p.collateralValue, 0n);
-
-    // Calculate weighted average health
-    const overallHealth =
-      activePositions.length > 0
-        ? activePositions.reduce((acc, p) => acc + p.healthFactor, 0n) /
-          BigInt(activePositions.length)
-        : 0n;
-
-    const formatBigNumber = (value: bigint) => {
-      const num = Number(value);
-      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-      return num.toFixed(2);
-    };
-
-    const getHealthStatus = (health: bigint) => {
-      const healthNum = Number(health) / 1e18;
-      if (healthNum >= 2) return "Excellent";
-      if (healthNum >= 1.5) return "Strong";
-      if (healthNum >= 1.2) return "Good";
-      if (healthNum >= 1.1) return "Moderate";
-      if (healthNum >= 1.0) return "Caution";
-      return "At Risk";
-    };
-
-    return {
-      totalSupplied,
-      totalBorrowed,
-      totalCollateralValue,
-      overallHealth,
-      positions,
-      formatted: {
-        totalSupplied: formatBigNumber(totalSupplied),
-        totalBorrowed: formatBigNumber(totalBorrowed),
-        totalCollateralValue: formatBigNumber(totalCollateralValue),
-        overallHealth: `${(Number(overallHealth) / 1e18).toFixed(2)}`,
-        healthStatus: getHealthStatus(overallHealth),
-        positions: activePositions.map(p => ({
-          category: p.category,
-          supplied: formatBigNumber(p.supplied),
-          borrowed: formatBigNumber(p.borrowed),
-          healthFactor: `${(Number(p.healthFactor) / 1e18).toFixed(2)}`,
-          collateralValue: formatBigNumber(p.collateralValue),
-        })),
-      },
     };
   }
 
