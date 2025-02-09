@@ -24,11 +24,10 @@ RUN npm install
 # Copy the rest of your application (excluding node_modules and agentkit)
 COPY .env* ./ 
 COPY tsconfig*.json ./
-COPY *.ts ./
 COPY .eslintrc* ./
 COPY .prettier* ./
+COPY src/ ./src/
 
-# Build your application
 RUN npm run build
 
 CMD ["node", "dist/chatbot.js", "--api"]
