@@ -997,8 +997,17 @@ video {
 .max-w-\[85\%\] {
   max-width: 85%;
 }
+.max-w-none {
+  max-width: none;
+}
 .flex-1 {
   flex: 1 1 0%;
+}
+.flex-none {
+  flex: none;
+}
+.flex-shrink-0 {
+  flex-shrink: 0;
 }
 .shrink-0 {
   flex-shrink: 0;
@@ -1227,6 +1236,9 @@ video {
 .rounded-sm {
   border-radius: calc(var(--radius) - 4px);
 }
+.rounded {
+  border-radius: 0.25rem;
+}
 .rounded-t-\[10px\] {
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -1333,6 +1345,9 @@ video {
 }
 .bg-transparent {
   background-color: transparent;
+}
+.bg-black\/10 {
+  background-color: rgb(0 0 0 / 0.1);
 }
 .bg-gradient-to-t {
   background-image: linear-gradient(to top, var(--tw-gradient-stops));
