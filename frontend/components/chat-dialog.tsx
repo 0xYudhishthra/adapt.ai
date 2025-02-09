@@ -144,6 +144,12 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] h-[90vh] p-6 flex flex-col">
         <DialogTitle className="sr-only">Chat Dialog</DialogTitle>
+        
+        <Tabs defaultValue="chat" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList>
+            <TabsTrigger value="chat">Chat</TabsTrigger>
+            <TabsTrigger value="logs">Agent Logs</TabsTrigger>
+          </TabsList>
 
           <TabsContent
             value="chat"
@@ -223,16 +229,26 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
                     </Card>
                   )}
                 </div>
-              </TabsContent>
+              </ScrollArea>
 
-              <TabsContent value="logs" className="h-full">
-                <div className="pr-4">
-                  <TEELogs logs={teeLogs} />
-                </div>
-              </TabsContent>
+              {/* Add chat input form */}
+              <form onSubmit={handleSend} className="mt-4 flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message..."
+                  disabled={isLoading}
+                />
+                <Button type="submit" disabled={isLoading || !input.trim()}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </form>
             </div>
-          </Tabs>
-        </div>
+          </TabsContent>
 
           <TabsContent
             value="logs"

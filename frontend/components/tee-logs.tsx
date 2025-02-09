@@ -7,34 +7,17 @@ interface TEELogsProps {
   logs: TEELog[];
 }
 
-// Fetch logs function with proper headers
-async function fetchLogsFromAPI() {
-  try {
-    const response = await fetch("/api/logs");
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data || !Array.isArray(data.logs)) {
-      console.warn("Unexpected data format:", data);
-      return [];
-    }
-    return data.logs;
-  } catch (error) {
-    console.error("Fetch error:", error);
-    throw error;
-  }
-}
+// Updated to use local API route
 
 export function TEELogs({ logs: initialLogs }: TEELogsProps) {
   const [logs, setLogs] = useState<TEELog[]>(initialLogs);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimeout: NodeJS.Timeout;
 
     const fetchLogs = async () => {
       if (!isMounted) return;
@@ -45,13 +28,21 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
         const fetchedLogs = await fetchLogsFromAPI();
         if (isMounted) {
           setLogs(fetchedLogs);
+          setRetryCount(0); // Reset retry count on success
         }
       } catch (err) {
         if (isMounted) {
-          const errorMessage =
-            err instanceof Error ? err.message : "Failed to fetch logs";
+          const errorMessage = err instanceof Error ? err.message : 'Failed to fetch logs';
           setError(errorMessage);
-          console.error("Error fetching logs:", err);
+          console.error('Error fetching logs:', err);
+
+          // Implement retry with exponential backoff
+          if (retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            retryTimeout = setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+            }, delay);
+          }
         }
       } finally {
         if (isMounted) {
@@ -62,14 +53,43 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
 
     fetchLogs();
 
-    // Reduced polling interval to avoid too many requests
-    const interval = setInterval(fetchLogs, 10000); // Changed to 10 seconds
+    const interval = setInterval(fetchLogs, 5000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, []);
+  }, [retryCount]);
+
+  async function fetchLogsFromAPI() {
+  try {
+    const response = await fetch('/api/logs', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store', // Disable caching
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Handle the string log format
+    if (typeof data.log === 'string') {
+      //setLogs(data.log, ...logs);
+    
+    }
+    // Handle array format if available
+    return Array.isArray(data.log) ? data.log : [];
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+}
 
   // Format timestamp
   const formatTimestamp = (timestamp: string | Date) => {
@@ -84,15 +104,11 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
   return (
     <ScrollArea className="h-[200px] rounded-md border bg-muted p-4">
       <div className="space-y-2 font-mono text-sm">
-        {isLoading && (
-          <div className="text-muted-foreground">Loading logs...</div>
-        )}
+        {isLoading && <div className="text-muted-foreground">Loading logs...</div>}
         {error && (
           <div className="text-red-500">
             Error: {error}
-            <div className="text-sm text-gray-500">
-              Please check your authentication token or network connection.
-            </div>
+            {retryCount < 3 && <div className="text-sm">Retrying... ({retryCount + 1}/3)</div>}
           </div>
         )}
         {logs.map((log, index) => (
@@ -118,14 +134,7 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
           </div>
         ))}
         {!isLoading && !error && logs.length === 0 && (
-          <div className="text-muted-foreground">
-            No logs available. This could be because:
-            <ul className="list-disc pl-5 mt-2 text-sm">
-              <li>The service hasn't generated any logs yet</li>
-              <li>There might be an authentication issue</li>
-              <li>The connection to the server might be restricted</li>
-            </ul>
-          </div>
+          <div className="text-muted-foreground">No logs available</div>
         )}
       </div>
     </ScrollArea>
