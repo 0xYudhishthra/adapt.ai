@@ -38,7 +38,7 @@ export class WalletService {
 
       const safeAccountConfig: SafeAccountConfig = {
         owners: [agentWalletAddress, userWalletAddress, signer.address],
-        threshold: 2,
+        threshold: 3,
         // More optional properties
       };
 
