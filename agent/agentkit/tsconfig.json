@@ -19,7 +19,8 @@
     "noImplicitAny": true,
     "noImplicitThis": true,
     "useDefineForClassFields": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "composite": true
 },
 "include": ["src/**/*.ts"],
 "exclude": ["src/tests"]

@@ -8,7 +8,7 @@ import {
   cdpWalletActionProvider,
   pythActionProvider,
   multisigActionProvider,
-} from "./agentkit";
+} from "@coinbase/agentkit";
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
@@ -18,7 +18,6 @@ import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
 import express from "express";
-import cors from "cors";
 
 dotenv.config();
 
@@ -257,27 +256,10 @@ async function runChatMode(agent: any, config: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runApiRouter(agent: any, config: any) {
   const app = express();
-  const port = process.env.PORT || 3000;
-
-  // Add CORS middleware
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    next();
-  });
-
-  app.use(
-    cors({
-      origin: "*", // Allow all origins
-      methods: ["GET", "POST", "OPTIONS"], // Specify allowed methods
-      allowedHeaders: ["Content-Type"], // Specify allowed headers
-    }),
-  );
-
   app.use(express.json());
 
-  app.post("/chat", async (req, res) => {
+  // Add route handler using app.use()
+  app.use("/chat", async (req: any, res: any) => {
     try {
       const { message } = req.body;
 
@@ -303,9 +285,7 @@ async function runApiRouter(agent: any, config: any) {
     }
   });
 
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+  return app;
 }
 
 /**
@@ -352,14 +332,27 @@ async function chooseMode(): Promise<"chat" | "auto" | "api"> {
 async function main() {
   try {
     const { agent, config } = await initializeAgent();
-    const mode = await chooseMode();
+    // Check if --api flag is present
+    const isApiMode = process.argv.includes("--api");
+
+    let mode;
+    if (isApiMode) {
+      mode = "api";
+      console.log("Starting in API mode...");
+    } else {
+      mode = await chooseMode();
+    }
 
     if (mode === "chat") {
       await runChatMode(agent, config);
     } else if (mode === "auto") {
       await runAutonomousMode(agent, config);
     } else if (mode === "api") {
-      await runApiRouter(agent, config);
+      const app = await runApiRouter(agent, config);
+      const port = process.env.PORT || 3000;
+      app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+      });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -371,6 +364,10 @@ async function main() {
 
 if (require.main === module) {
   console.log("Starting Agent...");
+  // Log if starting in API mode
+  if (process.argv.includes("--api")) {
+    console.log("API mode detected, skipping mode selection...");
+  }
   main().catch(error => {
     console.error("Fatal error:", error);
     process.exit(1);

@@ -5,15 +5,16 @@
   "author": "Coinbase Inc.",
   "license": "Apache-2.0",
   "scripts": {
-    "start": "NODE_OPTIONS='--no-warnings' ts-node ./chatbot.ts",
-    "dev": "nodemon ./chatbot.ts",
-    "lint": "eslint -c .eslintrc.json *.ts",
-    "lint:fix": "eslint -c .eslintrc.json *.ts --fix",
+    "start": "NODE_OPTIONS='--no-warnings' ts-node ./src/chatbot.ts",
+    "dev": "nodemon ./src/chatbot.ts",
+    "build": "tsc",
+    "lint": "eslint -c .eslintrc.json src/**/*.ts",
+    "lint:fix": "eslint -c .eslintrc.json src/**/*.ts --fix",
     "format": "prettier --write \"**/*.{ts,js,cjs,json,md}\"",
     "format:check": "prettier -c .prettierrc --check \"**/*.{ts,js,cjs,json,md}\""
   },
   "dependencies": {
-    "@coinbase/agentkit": "^0.1.0",
+    "@coinbase/agentkit": "file:./agentkit",
     "@coinbase/agentkit-langchain": "^0.1.0",
     "@langchain/core": "^0.3.19",
     "@langchain/langgraph": "^0.2.21",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   }
 }
