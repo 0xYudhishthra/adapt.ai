@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { Agent, Message, Strategy, TEELog, MultisigWallet } from "@/types"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -14,24 +14,21 @@ import { Send, Loader2 } from "lucide-react"
 interface ChatDialogProps {
   agent: Agent | null
   open: boolean
-  onOpenChangeAction: (open: boolean) => void
+  onOpenChange: (open: boolean) => void
 }
 
-export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps) {
+export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [strategy, setStrategy] = useState<Strategy | null>(null)
   const [multisig, setMultisig] = useState<MultisigWallet | null>(null)
   const [isCreatingMultisig, setIsCreatingMultisig] = useState(false)
   const [teeLogs, setTeeLogs] = useState<TEELog[]>([])
-  const [isLoading, setIsLoading] = useState(false)
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
-    setIsLoading(true)
-    
     const newMessage: Message = {
       id: Date.now().toString(),
       content: input,
@@ -42,69 +39,42 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
     setMessages((prev) => [...prev, newMessage])
     setInput("")
 
-    try {
-      console.log(input)
-      //create a JSON input from the parsed input
-      let parsedInput = JSON.stringify({ message: input })
-      console.log(parsedInput)
-
-      const response = await fetch('https://autonome.alt.technology/adapt-ai-ofrszk/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: input }),
-
-      })
-
-      console.log("response is:", response)
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Network response was not ok');
-      }
-
-      const data = await response.json()
-      
-      // Add agent response to messages
-      const agentResponse: Message = {
+    // Simulate AI response
+    setTimeout(() => {
+      const response: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.responses.join('\n'), // Join multiple responses if any
-        role: "assistant", 
+        content: "I've analyzed your request. Here's a potential strategy...",
+        role: "assistant",
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, agentResponse])
+      setMessages((prev) => [...prev, response])
 
-      // If response includes strategy details, update strategy state
-      if (data.strategy) {
-        setStrategy(data.strategy)
-      }
+      // Simulate strategy proposal
+      setStrategy({
+        id: Date.now().toString(),
+        title: "Yield Farming Strategy",
+        description:
+          "A balanced approach to maximize returns while minimizing risk",
+        steps: [
+          "Deploy capital to stable coin pool",
+          "Monitor APY rates",
+          "Rebalance as needed",
+        ],
+        requiredCapital: 1000,
+        status: "draft",
+      })
 
-      // Add to TEE logs
+      // Simulate TEE log
       setTeeLogs((prev) => [
         ...prev,
         {
           timestamp: new Date(),
           level: "info",
-          message: "Received agent response",
-          data: { responses: data.responses },
+          message: "Strategy analysis completed",
+          data: { confidence: 0.95 },
         },
       ])
-
-    } catch (error) {
-      console.error('Error:', error)
-      setTeeLogs((prev) => [
-        ...prev,
-        {
-          timestamp: new Date(),
-          level: "error",
-          message: "Failed to get agent response",
-          data: { error: String(error) },
-        },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
+    }, 1000)
   }
 
   const createMultisigWallet = async () => {
@@ -145,39 +115,30 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
     }
   }
 
-  const handleClose =() => {
-    setMessages([])
-    setInput("")
-    setStrategy(null)
-    setMultisig(null)
-    setTeeLogs([])
-    onOpenChangeAction(false)
-
-    onOpenChangeAction(false)
-  }
   return (
-    <Dialog open={open} onOpenChange={(isOpen) =>{
-      if (!isOpen) {
-        handleClose()
-      }
-    }}>
-      <DialogContent className="sm:max-w-[800px]">
-        <Tabs defaultValue="chat" className="h-[700px]">
-          <TabsList>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] h-[90vh] p-6">
+        <DialogTitle className="sr-only">Chat Dialog</DialogTitle>
+        <Tabs defaultValue="chat" className="h-full flex flex-col">
+          <TabsList className="mb-4">
             <TabsTrigger value="chat">Chat</TabsTrigger>
-            <TabsTrigger value="logs">Agent Logs</TabsTrigger>
+            <TabsTrigger value="logs">TEE Logs</TabsTrigger>
           </TabsList>
-          <TabsContent value="chat" className="mt-4 h-[calc(100%-40px)]">
-            <div className="flex h-full flex-col">
-              <ScrollArea className="flex-1 pr-4">
+          <TabsContent value="chat" className="flex-1 flex flex-col data-[state=active]:flex">
+            <div className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1 pr-4 h-[calc(90vh-160px)]">
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`mb-4 flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`mb-4 flex ${
+                      message.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                   >
                     <div
-                      className={`rounded-lg px-4 py-2 ${
-                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                      className={`rounded-lg px-4 py-2 max-w-[80%] whitespace-normal break-words ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
                       }`}
                     >
                       {message.content}
@@ -187,24 +148,34 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
                 {strategy && (
                   <Card className="mt-4">
                     <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
+                      <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                         {strategy.title}
-                        <span className="text-sm font-normal text-muted-foreground">Status: {strategy.status}</span>
+                        <span className="text-sm font-normal text-muted-foreground">
+                          Status: {strategy.status}
+                        </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="mb-2">{strategy.description}</p>
-                      <ul className="list-inside list-disc space-y-1">
+                    <CardContent className="space-y-2">
+                      <p className="mb-2 break-words">
+                        {strategy.description}
+                      </p>
+                      <ul className="list-inside list-disc space-y-1 break-words">
                         {strategy.steps.map((step, index) => (
-                          <li key={index}>{step}</li>
+                          <li key={index} className="break-words">
+                            {step}
+                          </li>
                         ))}
                       </ul>
-                      <p className="mt-4">Required Capital: ${strategy.requiredCapital}</p>
+                      <p className="mt-4 break-words">
+                        Required Capital: ${strategy.requiredCapital}
+                      </p>
                     </CardContent>
                     <CardFooter>
                       {strategy.status === "draft" && (
                         <Button onClick={createMultisigWallet} disabled={isCreatingMultisig} className="w-full">
-                          {isCreatingMultisig && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {isCreatingMultisig && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
                           Create Multisig & Execute Strategy
                         </Button>
                       )}
@@ -224,22 +195,22 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
                   placeholder="Type your message..."
                   className="flex-1"
                 />
-                <Button type="submit" size="icon" disabled={isLoading}>
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+                <Button type="submit" size="icon">
+                  <Send className="h-4 w-4" />
                 </Button>
               </form>
             </div>
           </TabsContent>
-          <TabsContent value="logs" className="mt-4">
-            <TEELogs logs={teeLogs} />
+          <TabsContent 
+            value="logs" 
+            className="flex-1 data-[state=active]:flex flex-col overflow-hidden"
+          >
+            <ScrollArea className="flex-1 h-[calc(90vh-160px)]">
+              <TEELogs logs={teeLogs} />
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
   )
 }
-
