@@ -6,6 +6,7 @@ export interface Agent {
   ideas: string[]
   about: string
   createdAt: Date
+  strategies: string[]
 }
 
 export interface Message {
