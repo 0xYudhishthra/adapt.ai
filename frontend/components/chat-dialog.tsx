@@ -165,7 +165,7 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
         <Tabs defaultValue="chat" className="h-[700px]">
           <TabsList>
             <TabsTrigger value="chat">Chat</TabsTrigger>
-            <TabsTrigger value="logs">TEE Logs</TabsTrigger>
+            <TabsTrigger value="logs">Agent Logs</TabsTrigger>
           </TabsList>
           <TabsContent value="chat" className="mt-4 h-[calc(100%-40px)]">
             <div className="flex h-full flex-col">
