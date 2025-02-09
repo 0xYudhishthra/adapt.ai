@@ -27,8 +27,17 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
       try {
         const fetchedLogs = await fetchLogsFromAPI();
         if (isMounted) {
-          setLogs(fetchedLogs);
-          setRetryCount(0); // Reset retry count on success
+          // Append new logs to existing ones, avoiding duplicates
+          setLogs(prevLogs => {
+            const newLogs = fetchedLogs.filter((newLog: TEELog) => 
+              !prevLogs.some(existingLog => 
+                existingLog.message === newLog.message && 
+                existingLog.timestamp.getTime() === newLog.timestamp.getTime()
+              )
+            );
+            return [...prevLogs, ...newLogs];
+          });
+          setRetryCount(0);
         }
       } catch (err) {
         if (isMounted) {
@@ -36,7 +45,6 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
           setError(errorMessage);
           console.error('Error fetching logs:', err);
 
-          // Implement retry with exponential backoff
           if (retryCount < 3) {
             const delay = Math.pow(2, retryCount) * 1000;
             retryTimeout = setTimeout(() => {
@@ -63,47 +71,41 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
   }, [retryCount]);
 
   async function fetchLogsFromAPI() {
-  try {
-    const response = await fetch('/api/logs', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store', // Disable caching
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    // Handle the string log format
-    if (typeof data.log === 'string') {
-      const log: TEELog = {
-        timestamp: new Date(),
-        level: "info",
-        message: data.log,
-      }
-      setLogs([log, ...logs]);
-    }
-    // Handle array format if available
-    return Array.isArray(data.log) ? data.log : [];
-  } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
-  }
-}
-
-  // Format timestamp
-  const formatTimestamp = (timestamp: string | Date) => {
     try {
-      const date = new Date(timestamp);
-      return date.toISOString();
-    } catch (e) {
-      return "Invalid date";
+      const response = await fetch('/api/logs', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Handle the string log format
+      if (typeof data.log === 'string') {
+        const log: TEELog = {
+          timestamp: new Date(),
+          level: "info",
+          message: data.log,
+        }
+        setLogs(prevLogs => [...prevLogs, log]);
+      }
+      // Handle array format if available
+      return Array.isArray(data.log) ? data.log : [];
+    } catch (error) {
+      console.error('Fetch error:', error);
+      throw error;
     }
-  };
+  }
+
+  // Sort logs by timestamp, most recent first
+  const sortedLogs = [...logs].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
   return (
     <ScrollArea className="h-[200px] rounded-md border bg-muted p-4">
@@ -115,9 +117,9 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
             {retryCount < 3 && <div className="text-sm">Retrying... ({retryCount + 1}/3)</div>}
           </div>
         )}
-        {logs.map((log, index) => (
+        {sortedLogs.map((log, index) => (
           <div
-            key={index}
+            key={`${log.timestamp.getTime()}-${index}`}
             className={cn(
               "flex items-start gap-2",
               log.level === "error" && "text-red-400",
@@ -126,7 +128,7 @@ export function TEELogs({ logs: initialLogs }: TEELogsProps) {
             )}
           >
             <span className="text-muted-foreground">
-              {formatTimestamp(log.timestamp)}
+              {new Date(log.timestamp).toISOString()}
             </span>
             <span>[{log.level.toUpperCase()}]</span>
             <span>{log.message}</span>
