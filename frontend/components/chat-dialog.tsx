@@ -5,7 +5,6 @@ import type { Agent, Message, Strategy, TEELog, MultisigWallet } from "@/types"
 import { Dialog, DialogTitle, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TEELogs } from "@/components/tee-logs"
@@ -43,44 +42,33 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
     setInput("")
 
     try {
-      console.log(input)
-      //create a JSON input from the parsed input
-      let parsedInput = JSON.stringify({ message: input })
-      console.log(parsedInput)
-
       const response = await fetch('https://autonome.alt.technology/adapt-ai-ofrszk/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message: input }),
-
       })
 
-      console.log("response is:", response)
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Network response was not ok');
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Network response was not ok')
       }
 
       const data = await response.json()
 
-      // Add agent response to messages
       const agentResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.responses.join('\n'), // Join multiple responses if any
-        role: "assistant", 
+        content: data.responses.join('\n'),
+        role: "assistant",
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, agentResponse])
 
-      // If response includes strategy details, update strategy state
       if (data.strategy) {
         setStrategy(data.strategy)
       }
 
-      // Add to TEE logs
       setTeeLogs((prev) => [
         ...prev,
         {
@@ -90,7 +78,6 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
           data: { responses: data.responses },
         },
       ])
-
     } catch (error) {
       console.error('Error:', error)
       setTeeLogs((prev) => [
@@ -110,7 +97,7 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
   const createMultisigWallet = async () => {
     setIsCreatingMultisig(true)
     try {
-      // Simulate Safe API call
+      // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       setMultisig({
@@ -147,20 +134,24 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] h-[90vh] overflow-hidden p-6">
+      <DialogContent className="sm:max-w-[800px] h-[90vh] p-6 flex flex-col">
         <DialogTitle className="sr-only">Chat Dialog</DialogTitle>
-        <Tabs defaultValue="chat" className="h-full flex flex-col">
-          <TabsList className="mb-4">
-            <TabsTrigger value="chat">Chat</TabsTrigger>
-            <TabsTrigger value="logs">TEE Logs</TabsTrigger>
-          </TabsList>
 
-          <TabsContent 
-            value="chat" 
-            className="flex-1 flex flex-col data-[state=active]:flex overflow-hidden"
-          >
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <ScrollArea className="flex-1">
+        {/*
+          Top Section: Tabs and their scrollable content.
+          This container takes up all available space (flex-1) and is set to overflow-hidden.
+        */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <Tabs defaultValue="chat" className="flex flex-col h-full">
+            {/* Fixed Tabs header */}
+            <TabsList className="flex-none mb-2">
+              <TabsTrigger value="chat">Chat</TabsTrigger>
+              <TabsTrigger value="logs">TEE Logs</TabsTrigger>
+            </TabsList>
+
+            {/* Scrollable container for tab content with custom sleek scrollbar */}
+            <div className="flex-1 overflow-y-auto scroll-sleek">
+              <TabsContent value="chat" className="h-full">
                 <div className="pr-4 space-y-4">
                   {messages.map((message) => (
                     <div
@@ -178,6 +169,7 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
                       </div>
                     </div>
                   ))}
+
                   {strategy && (
                     <Card className="mt-4">
                       <CardHeader className="pb-2">
@@ -205,9 +197,9 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
                       </CardContent>
                       <CardFooter>
                         {strategy.status === "draft" && (
-                          <Button 
-                            onClick={createMultisigWallet} 
-                            disabled={isCreatingMultisig} 
+                          <Button
+                            onClick={createMultisigWallet}
+                            disabled={isCreatingMultisig}
                             className="w-full"
                           >
                             {isCreatingMultisig && (
@@ -225,38 +217,62 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
                     </Card>
                   )}
                 </div>
-              </ScrollArea>
+              </TabsContent>
 
-              <form onSubmit={handleSend} className="mt-4 flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1"
-                />
-                <Button type="submit" size="icon" disabled={isLoading}>
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </form>
+              <TabsContent value="logs" className="h-full">
+                <div className="pr-4">
+                  <TEELogs logs={teeLogs} />
+                </div>
+              </TabsContent>
             </div>
-          </TabsContent>
+          </Tabs>
+        </div>
 
-          <TabsContent 
-            value="logs" 
-            className="flex-1 data-[state=active]:flex flex-col overflow-hidden"
-          >
-            <ScrollArea className="flex-1">
-              <div className="pr-4">
-                <TEELogs logs={teeLogs} />
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+        {/*
+          Bottom Section: Input Form (always visible).
+          This container does not grow and is placed below the scrollable area.
+        */}
+        <div className="mt-4 flex-shrink-0">
+          <form onSubmit={handleSend} className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1"
+            />
+            <Button type="submit" size="icon" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </form>
+        </div>
       </DialogContent>
+
+      {/*
+        Global CSS for a sleek custom scrollbar.
+        You can move this to your global CSS file if preferred.
+      */}
+      <style jsx global>{`
+        .scroll-sleek::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .scroll-sleek::-webkit-scrollbar-track {
+          background:rgb(107, 49, 223);
+        }
+        .scroll-sleek::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+          border: 2px solidrgb(0, 21, 97);
+        }
+        .scroll-sleek::-webkit-scrollbar-thumb:hover {
+          background-color: #555;
+        }
+      `}</style>
     </Dialog>
   )
 }
+
