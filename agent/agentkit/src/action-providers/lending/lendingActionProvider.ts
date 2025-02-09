@@ -219,82 +219,54 @@ Use correct token (USDC/WETH) per strategy
     args: z.infer<typeof GetPoolInfoSchema>,
   ): Promise<PoolInfo> {
     try {
-      // Validate category
       if (!VAULTS["base-sepolia"][args.category]) {
         throw new Error(`Invalid vault category: ${args.category}`);
       }
 
       const vault = VAULTS["base-sepolia"][args.category];
-      console.log(`Fetching pool info for vault: ${vault.address}`);
 
       const [supplyAPY, borrowAPY, totalSupplied, totalBorrowed, supplyCap] = await Promise.all([
-        wallet
-          .readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "baseSupplyAPY",
-          })
-          .catch(e => {
-            console.error(`Error fetching supplyAPY: ${e}`);
-            throw e;
-          }),
-        wallet
-          .readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "baseBorrowAPY",
-          })
-          .catch(e => {
-            console.error(`Error fetching borrowAPY: ${e}`);
-            throw e;
-          }),
-        wallet
-          .readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "supplied",
-          })
-          .catch(e => {
-            console.error(`Error fetching totalSupplied: ${e}`);
-            throw e;
-          }),
-        wallet
-          .readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "borrowed",
-          })
-          .catch(e => {
-            console.error(`Error fetching totalBorrowed: ${e}`);
-            throw e;
-          }),
-        wallet
-          .readContract({
-            address: vault.address as `0x${string}`,
-            abi: LENDING_POOL_VIEW_ABI,
-            functionName: "supplyCap",
-          })
-          .catch(e => {
-            console.error(`Error fetching supplyCap: ${e}`);
-            throw e;
-          }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "baseSupplyAPY",
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "baseBorrowAPY",
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "supplied",
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "borrowed",
+        }),
+        wallet.readContract({
+          address: vault.address as `0x${string}`,
+          abi: LENDING_POOL_VIEW_ABI,
+          functionName: "supplyCap",
+        }),
       ]);
 
-      console.log("Raw values:", {
-        supplyAPY,
-        borrowAPY,
-        totalSupplied,
-        totalBorrowed,
-        supplyCap,
-      });
+      const supplyAPYBigInt = BigInt(supplyAPY as string | number);
+      const borrowAPYBigInt = BigInt(borrowAPY as string | number);
+      const totalSuppliedBigInt = BigInt(totalSupplied as string | number);
+      const totalBorrowedBigInt = BigInt(totalBorrowed as string | number);
+      const supplyCapBigInt = BigInt(supplyCap as string | number);
 
       const utilizationRate =
-        totalSupplied === 0n
+        totalSuppliedBigInt === 0n
           ? "0%"
-          : `${((Number(totalBorrowed) * 100) / Number(totalSupplied)).toFixed(2)}%`;
+          : `${(Number((totalBorrowedBigInt * 10000n) / totalSuppliedBigInt) / 100).toFixed(2)}%`;
 
       const formatBigNumber = (value: bigint) => {
-        const num = Number(value);
+        const numStr = value.toString();
+        const num = Number(numStr);
         if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
         if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
         return num.toString();
@@ -302,25 +274,22 @@ Use correct token (USDC/WETH) per strategy
 
       const formatAPY = (value: bigint) => `${(Number(value) / 1e16).toFixed(2)}%`;
 
-      const result = {
-        supplyAPY: supplyAPY as bigint,
-        borrowAPY: borrowAPY as bigint,
-        totalSupplied: totalSupplied as bigint,
-        totalBorrowed: totalBorrowed as bigint,
-        supplyCap: supplyCap as bigint,
+      return {
+        supplyAPY: supplyAPYBigInt,
+        borrowAPY: borrowAPYBigInt,
+        totalSupplied: totalSuppliedBigInt,
+        totalBorrowed: totalBorrowedBigInt,
+        supplyCap: supplyCapBigInt,
         utilizationRate,
         depositToken: vault.depositToken,
         formatted: {
-          supplyAPY: formatAPY(supplyAPY as bigint),
-          borrowAPY: formatAPY(borrowAPY as bigint),
-          totalSupplied: formatBigNumber(totalSupplied as bigint),
-          totalBorrowed: formatBigNumber(totalBorrowed as bigint),
-          supplyCap: formatBigNumber(supplyCap as bigint),
+          supplyAPY: formatAPY(supplyAPYBigInt),
+          borrowAPY: formatAPY(borrowAPYBigInt),
+          totalSupplied: formatBigNumber(totalSuppliedBigInt),
+          totalBorrowed: formatBigNumber(totalBorrowedBigInt),
+          supplyCap: formatBigNumber(supplyCapBigInt),
         },
       };
-
-      console.log("Formatted result:", result);
-      return result;
     } catch (error) {
       console.error("Error in getPoolInfo:", error);
       throw error;

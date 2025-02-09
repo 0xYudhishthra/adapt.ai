@@ -1,38 +1,58 @@
-import { encodeFunctionData, Hex } from "viem";
+import { encodeFunctionData } from "viem";
 import { LENDING_POOL_ABI } from "./constants";
 
-export function generateSupplyCalldata(
+const scaleAmount = (amount: bigint, decimals: number): bigint => {
+  return amount * BigInt(10) ** BigInt(decimals);
+};
+
+export const generateSupplyCalldata = (
   amount: bigint,
   receiver: `0x${string}`,
   useAsCollateral: boolean,
-): Hex {
+  tokenDecimals: number = 18, // Default to 18 for WETH, should be 6 for USDC
+): `0x${string}` => {
+  const scaledAmount = scaleAmount(amount, tokenDecimals);
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "supply",
-    args: [amount, receiver, useAsCollateral],
+    args: [scaledAmount, receiver, useAsCollateral],
   });
-}
+};
 
-export function generateWithdrawCalldata(amount: bigint, receiver: `0x${string}`, owner: `0x${string}`): Hex {
+export const generateWithdrawCalldata = (
+  amount: bigint,
+  owner: `0x${string}`,
+  receiver: `0x${string}`,
+  tokenDecimals: number = 18,
+): `0x${string}` => {
+  const scaledAmount = scaleAmount(amount, tokenDecimals);
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "withdraw",
-    args: [amount, receiver, owner],
+    args: [scaledAmount, owner, receiver],
   });
-}
+};
 
-export function generateBorrowCalldata(amount: bigint): Hex {
+export const generateBorrowCalldata = (
+  amount: bigint,
+  tokenDecimals: number = 18,
+): `0x${string}` => {
+  const scaledAmount = scaleAmount(amount, tokenDecimals);
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "take",
-    args: [amount],
+    args: [scaledAmount],
   });
-}
+};
 
-export function generateRepayCalldata(amount: bigint): Hex {
+export const generateRepayCalldata = (
+  amount: bigint,
+  tokenDecimals: number = 18,
+): `0x${string}` => {
+  const scaledAmount = scaleAmount(amount, tokenDecimals);
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "putAmount",
-    args: [amount],
+    args: [scaledAmount],
   });
-}
+};
