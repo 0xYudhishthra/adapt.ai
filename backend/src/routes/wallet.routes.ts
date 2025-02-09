@@ -18,6 +18,7 @@ router.post('/create', async (req: Request, res: Response) => {
 // Get the multisig wallet 
 router.post('/get/multisig', async (req: Request, res: Response) => {
     try {
+        console.log(req.body);
         const { agentAddress, userAddress } = req.body;
         const wallet = await getMultisigWallet(agentAddress, userAddress);
         res.json({ success: true, multisig_address: wallet });
