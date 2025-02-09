@@ -64,7 +64,7 @@ export class MultisigActionProvider extends ActionProvider<EvmWalletProvider> {
     try {
         console.log(args);
         // it will create a multisig wallet for the agent and the user
-        const result = await fetch(`${process.env.BACKEND_URL}/api/wallet/create`, {
+        const result = await fetch(`http://localhost:3000/api/wallet/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

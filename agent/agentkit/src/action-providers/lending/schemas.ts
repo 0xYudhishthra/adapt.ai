@@ -45,6 +45,7 @@ export const SupplySchema = z
   .object({
     category: InvestmentCategory.describe("The investment category you want to invest in"),
     amount: z.string().describe("The amount to supply"),
+    agentId: z.string().describe("The agent ID"),
     useAsCollateral: z
       .boolean()
       .default(false)
@@ -53,7 +54,9 @@ export const SupplySchema = z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
       .optional()
-      .describe("The wallet address to supply from. If not provided, please ask the user for their wallet address."),
+      .describe(
+        "The wallet address to supply from. If not provided, please ask the user for their wallet address.",
+      ),
   })
   .strip()
   .describe("Instructions for supplying assets to a lending vault");
@@ -62,11 +65,14 @@ export const WithdrawSchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to withdraw from"),
     amount: z.string().describe("The amount to withdraw"),
+    agentId: z.string().describe("The agent ID"),
     account: z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
       .optional()
-      .describe("The wallet address to withdraw to. If not provided, please ask the user for their wallet address."),
+      .describe(
+        "The wallet address to withdraw to. If not provided, please ask the user for their wallet address.",
+      ),
   })
   .strip()
   .describe("Instructions for withdrawing assets from a lending vault");
@@ -75,11 +81,14 @@ export const BorrowSchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to borrow from"),
     amount: z.string().describe("The amount to borrow"),
+    agentId: z.string().describe("The agent ID"),
     account: z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
       .optional()
-      .describe("The wallet address to borrow to. If not provided, please ask the user for their wallet address."),
+      .describe(
+        "The wallet address to borrow to. If not provided, please ask the user for their wallet address.",
+      ),
   })
   .strip()
   .describe("Instructions for borrowing assets from a lending vault");
@@ -88,11 +97,14 @@ export const RepaySchema = z
   .object({
     category: InvestmentCategory.describe("The investment category to repay to"),
     amount: z.string().describe("The amount to repay"),
+    agentId: z.string().describe("The agent ID"),
     account: z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format")
       .optional()
-      .describe("The wallet address to repay from. If not provided, please ask the user for their wallet address."),
+      .describe(
+        "The wallet address to repay from. If not provided, please ask the user for their wallet address.",
+      ),
   })
   .strip()
   .describe("Instructions for repaying borrowed assets");

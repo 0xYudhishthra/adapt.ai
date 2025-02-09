@@ -102,10 +102,44 @@ Use correct token (USDC/WETH) per strategy
         return "Please provide your wallet address to supply assets. The address should be in the format 0x... (42 characters long)";
       }
 
+      let multisig = null;
+
+      //First check if a multisig exists
+      multisig = await fetch("http://localhost:3000/api/wallet/get/multisig", {
+        method: "POST",
+        body: JSON.stringify({
+          agentAddress: wallet.getAddress(),
+          userAddress: args.account,
+        }),
+      });
+
+      let res = (await multisig.json()) as any;
+      console.log(res);
+
+      if (res.success != "false") {
+        multisig = res?.data?.safeAddress;
+      }
+
+      if (res.success == "false") {
+        //create a multisig
+        multisig = await fetch("http://localhost:3000/api/wallet/create/", {
+          method: "POST",
+          body: JSON.stringify({
+            agentId: args.agentId,
+            agentAddress: wallet.getAddress(),
+            userAddress: args.account,
+          }),
+        });
+
+        res = (await multisig.json()) as any;
+
+        multisig = res.data.safeAddress;
+      }
+
       const vault = VAULTS["base-sepolia"][args.category];
       const data = generateSupplyCalldata(
         BigInt(args.amount),
-        args.account as `0x${string}`,
+        multisig as `0x${string}`,
         args.useAsCollateral,
       );
 
