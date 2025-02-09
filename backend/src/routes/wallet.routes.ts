@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { createMultisigWallet } from '../controllers/wallet.controller';
+import { createMultisigWallet, signMultisig } from '../controllers/wallet.controller';
 
 const router = express.Router();
 
@@ -16,14 +16,14 @@ router.post('/create', async (req: Request, res: Response) => {
 });
 
 // Sign multisig transaction
-// router.post('/sign', async (req: Request, res: Response) => {
-//     try {
-//         const { walletId, agentId, userId, transaction } = req.body;
-//         const signature = await signMultisig(walletId, agentId, userId, transaction);
-//         res.json({ success: true, data: signature });
-//     } catch (error) {
-//         res.status(500).json({ success: false, error: (error as Error).message });
-//     }
-// });
+router.post('/sign', async (req: Request, res: Response) => {
+    try {
+        const { agentAddress, userAddress, to } = req.body;
+        const signature = await signMultisig(agentAddress, userAddress, to);
+        res.json({ success: true, data: signature.hash });
+    } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+    }
+});
 
 export default router;

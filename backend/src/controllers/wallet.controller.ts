@@ -6,6 +6,6 @@ export const createMultisigWallet = async (agentId: string, agentWalletAddress: 
     return await walletService.createMultisig(agentId, agentWalletAddress, userWalletAddress);
 };
 
-// export const signMultisig = async (walletId: string, agentId: string, userId: string, transaction: any) => {
-//     return await walletService.signTransaction(walletId, agentId, userId, transaction);
-// }; 
+export const signMultisig = async (agentAddress: string, userAddress: string, to: string) => {
+    return await walletService.signMultisigTransaction(agentAddress, userAddress, to);
+}; 

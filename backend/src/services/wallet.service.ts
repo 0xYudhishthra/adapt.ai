@@ -4,6 +4,7 @@ import Safe, { PredictedSafeProps, SafeAccountConfig } from '@safe-global/protoc
 import { createPublicClient, http } from 'viem';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import SafeApiKit from '@safe-global/api-kit'
 import {
   MetaTransactionData,
   OperationType
@@ -93,12 +94,11 @@ export class WalletService {
         }
     }
 
-    async signMultisigTransaction(agentId: string, agentWalletAddress: string, userWalletAddress: string) {
+    async signMultisigTransaction(agentWalletAddress: string, userWalletAddress: string, to: string) {
       //fetch the safe address from the database 
       const {data, error} = await this.supabase
         .from('safes')
         .select('*')
-        .eq('agent_id', agentId)
         .eq('agent_wallet_address', agentWalletAddress)
         .eq('user_wallet_address', userWalletAddress).single()
         if (error) {
@@ -117,16 +117,27 @@ export class WalletService {
             safeAddress: safeAddress
         })
 
-        const safeTransactionData: MetaTransactionData = {
-          to: '0x',
-          value: '1', // 1 wei
-          data: '0x',
-          operation: OperationType.Call
-        }
+        const apiKit = new SafeApiKit({
+          chainId: BigInt(baseSepolia.id)
+        })
 
-        // const safeTransaction = await safe.createTransaction({
-        //     safeTransactionData
-        // })
+        const pendingTransactions = (await apiKit.getPendingTransactions(safeAddress)).results
+
+        const transaction = pendingTransactions[0]
+
+        const safeTxHash = transaction.transactionHash
+        const signature = await safe.signHash(safeTxHash)
+    
+        // Confirm the Safe transaction
+        const signatureResponse = await apiKit.confirmTransaction(
+          safeTxHash,
+          signature.data
+        )
+
+        const safeTransaction = await apiKit.getTransaction(safeTxHash)
+        const executeTxResponse = await safe.executeTransaction(safeTransaction)
+
+        return executeTxResponse
     }
 
     async checkSafeExistsOnChain(agentAddress: string, userAddress: string) {

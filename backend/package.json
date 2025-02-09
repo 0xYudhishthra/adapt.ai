@@ -16,6 +16,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@safe-global/api-kit": "^2.5.8",
     "@safe-global/protocol-kit": "^5.2.1",
     "@safe-global/sdk-starter-kit": "^1.1.4",
     "@safe-global/types-kit": "^1.0.2",
