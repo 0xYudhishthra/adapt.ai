@@ -4,7 +4,7 @@ import type { Agent } from "@/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Lightbulb, Info, Calendar } from "lucide-react"
+import { MessageSquare, Lightbulb, Info, Calendar, Loader2, Send } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -15,6 +15,7 @@ interface AgentCardProps {
 
 export function AgentCard({ agent, onChat }: AgentCardProps) {
   const [showDetails, setShowDetails] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   return (
     <Dialog open={showDetails} onOpenChange={setShowDetails}>
