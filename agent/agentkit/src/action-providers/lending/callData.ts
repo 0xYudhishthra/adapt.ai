@@ -3,8 +3,8 @@ import { LENDING_POOL_ABI } from "./constants";
 
 export function generateSupplyCalldata(
   amount: bigint,
-  receiver: string,
-  useAsCollateral: boolean
+  receiver: `0x${string}`,
+  useAsCollateral: boolean,
 ): Hex {
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
@@ -13,11 +13,7 @@ export function generateSupplyCalldata(
   });
 }
 
-export function generateWithdrawCalldata(
-  amount: bigint,
-  receiver: string,
-  owner: string
-): Hex {
+export function generateWithdrawCalldata(amount: bigint, receiver: `0x${string}`, owner: `0x${string}`): Hex {
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "withdraw",
@@ -25,9 +21,7 @@ export function generateWithdrawCalldata(
   });
 }
 
-export function generateBorrowCalldata(
-  amount: bigint
-): Hex {
+export function generateBorrowCalldata(amount: bigint): Hex {
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "take",
@@ -35,12 +29,10 @@ export function generateBorrowCalldata(
   });
 }
 
-export function generateRepayCalldata(
-  amount: bigint
-): Hex {
+export function generateRepayCalldata(amount: bigint): Hex {
   return encodeFunctionData({
     abi: LENDING_POOL_ABI,
     functionName: "putAmount",
     args: [amount],
   });
-} 
+}

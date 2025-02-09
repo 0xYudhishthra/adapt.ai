@@ -14,3 +14,4 @@ export * from "./wallet";
 export * from "./customActionProvider";
 export * from "./alchemy";
 export * from "./multisig";
+export * from "./lending";
