@@ -232,7 +232,7 @@ export class CdpWalletProvider extends EvmWalletProvider {
     }
 
     const preparedTransaction = await this.prepareTransaction(
-      transaction.to!,
+      transaction.to! as `0x${string}`,
       transaction.value!,
       transaction.data!,
     );

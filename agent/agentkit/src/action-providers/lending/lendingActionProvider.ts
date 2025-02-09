@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ActionProvider } from "../actionProvider";
 import { CreateAction } from "../actionDecorator";
 import { Network } from "../../network";
-import { EvmWalletProvider } from "../../wallet-providers";
+import { CdpWalletProvider, EvmWalletProvider } from "../../wallet-providers";
 import {
   SupplySchema,
   WithdrawSchema,
@@ -21,6 +21,10 @@ import { VAULTS, LENDING_POOL_ABI, LENDING_POOL_VIEW_ABI } from "./constants";
 import { Hex } from "viem";
 import { createPublicClient, http, PublicClient } from "viem";
 import { baseSepolia } from "viem/chains";
+import SafeApiKit from "@safe-global/api-kit";
+import Safe from "@safe-global/protocol-kit";
+import { MetaTransactionData, OperationType } from "@safe-global/types-kit";
+import fs from "fs";
 
 interface CallDataResponse {
   to: Hex;
@@ -93,47 +97,60 @@ Use correct token (USDC/WETH) per strategy
 `,
     schema: SupplySchema,
   })
-  async supply(
-    wallet: EvmWalletProvider,
-    args: z.infer<typeof SupplySchema>,
-  ): Promise<CallDataResponse | string> {
+  async supply(wallet: EvmWalletProvider, args: z.infer<typeof SupplySchema>): Promise<string> {
     try {
       if (!args.account) {
         return "Please provide your wallet address to supply assets. The address should be in the format 0x... (42 characters long)";
       }
 
-      let multisig = null;
+      let multisig: string | null = null;
 
-      //First check if a multisig exists
-      multisig = await fetch("http://localhost:3000/api/wallet/get/multisig", {
+      console.log("Addresses:", await wallet.getAddress(), args.account);
+
+      // First check if a multisig exists
+      const checkMultisigResponse = await fetch("http://localhost:3000/api/wallet/get/multisig", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          agentAddress: wallet.getAddress(),
+          agentAddress: await wallet.getAddress(), // await the promise
           userAddress: args.account,
         }),
       });
 
-      let res = (await multisig.json()) as any;
-      console.log(res);
+      let res = (await checkMultisigResponse.json()) as any;
+      console.log("Check multisig response:", res);
 
-      if (res.success != "false") {
-        multisig = res?.data?.safeAddress;
-      }
-
-      if (res.success == "false") {
-        //create a multisig
-        multisig = await fetch("http://localhost:3000/api/wallet/create/", {
+      if (res.success == true) {
+        // Use strict comparison and correct value
+        multisig = res.multisig_address;
+      } else {
+        // Create a multisig
+        const createMultisigResponse = await fetch("http://localhost:3000/api/wallet/create/", {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             agentId: args.agentId,
-            agentAddress: wallet.getAddress(),
+            agentAddress: await wallet.getAddress(), // await the promise
             userAddress: args.account,
           }),
         });
 
-        res = (await multisig.json()) as any;
+        res = await createMultisigResponse.json();
+        console.log("Create multisig response:", res);
 
-        multisig = res.data.safeAddress;
+        if (!res.multisig_address) {
+          throw new Error("Failed to create multisig: No safe address returned");
+        }
+
+        multisig = res.multisig_address;
+      }
+
+      if (!multisig) {
+        throw new Error("Failed to get or create multisig wallet");
       }
 
       const vault = VAULTS["base-sepolia"][args.category];
@@ -143,11 +160,49 @@ Use correct token (USDC/WETH) per strategy
         args.useAsCollateral,
       );
 
-      return {
-        to: vault.address as Hex,
-        data,
-        description: `Supply ${args.amount} ${vault.depositToken} to ${args.category} vault from ${args.account}`,
+      const walletData =
+        '{"walletId":"28262c4d-ffbb-459c-8d58-d5f10ce188dd","seed":"0xe3598d59150b1bedcffee60613127a3e05fc9fed362358485ac420507ff82c3e","networkId":"base-sepolia"}';
+
+      const walletDataJson = JSON.parse(walletData);
+
+      //get the signer from the wallet data
+
+      const protocolKitOwner1 = await Safe.init({
+        provider: baseSepolia.rpcUrls.default.http[0],
+        signer: walletDataJson.seed,
+        safeAddress: multisig,
+      });
+
+      const safeTransactionData: MetaTransactionData = {
+        to: vault.address as `0x${string}`,
+        value: "0", // 1 wei
+        data: data,
+        operation: OperationType.Call,
       };
+
+      const safeTransaction = await protocolKitOwner1.createTransaction({
+        transactions: [safeTransactionData],
+      });
+
+      const apiKit = new SafeApiKit({
+        chainId: BigInt(baseSepolia.id),
+      });
+
+      // Deterministic hash based on transaction parameters
+      const safeTxHash = await protocolKitOwner1.getTransactionHash(safeTransaction);
+
+      // Sign transaction to verify that the transaction is coming from owner 1
+      const senderSignature = await protocolKitOwner1.signHash(safeTxHash);
+
+      await apiKit.proposeTransaction({
+        safeAddress: multisig,
+        safeTransactionData: safeTransaction.data,
+        safeTxHash,
+        senderAddress: await wallet.getAddress(),
+        senderSignature: senderSignature.data,
+      });
+
+      return `Supply ${args.amount} ${vault.depositToken} to ${args.category} vault from ${args.account}. You should sign the transaction with your wallet too at multisig address ${multisig}`;
     } catch (error) {
       if (error instanceof Error && error.message.includes("invalid address")) {
         return "The provided wallet address is invalid. Please provide a valid Ethereum address in the format 0x... (42 characters long)";
