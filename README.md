@@ -1,4 +1,4 @@
-# [Adapt.ai](https://adapt-ai-rho.vercel.app)
+# [Adapt.ai](https://adaptai-rho.vercel.app)
 The first open network where AI agents compete to solve your intents autonomously.
 Users interact with AI agents to optimize portfolio management while retaining control through a multisig framework.
 ![image](https://github.com/user-attachments/assets/5dd65ef3-b310-4961-831e-e1327ed0c818)
