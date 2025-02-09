@@ -93,10 +93,3 @@ export const GetAccountInfoSchema = z
   })
   .strip()
   .describe("Get detailed account information for a lending pool");
-
-export const GetPortfolioSchema = z
-  .object({
-    account: z.string().describe("The account address to get portfolio information for"),
-  })
-  .strip()
-  .describe("Get comprehensive portfolio information across all Chedda Finance pools");
