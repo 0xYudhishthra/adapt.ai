@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.12;
 
-import {HelloWorldServiceManager} from "../src/HelloWorldServiceManager.sol";
+import {adaptAIPolicyAVS} from "../src/adaptAIPolicyAVS.sol";
 import {MockAVSDeployer} from "@eigenlayer-middleware/test/utils/MockAVSDeployer.sol";
 import {ECDSAStakeRegistry} from "@eigenlayer-middleware/src/unaudited/ECDSAStakeRegistry.sol";
 import {Vm} from "forge-std/Vm.sol";
@@ -23,7 +23,7 @@ import {ISignatureUtils} from "@eigenlayer/contracts/interfaces/ISignatureUtils.
 import {AVSDirectory} from "@eigenlayer/contracts/core/AVSDirectory.sol";
 import {IAVSDirectory} from "@eigenlayer/contracts/interfaces/IAVSDirectory.sol";
 import {Test, console2 as console} from "forge-std/Test.sol";
-import {IHelloWorldServiceManager} from "../src/IHelloWorldServiceManager.sol";
+import {IadaptAIPolicyAVS} from "../src/IadaptAIPolicyAVS.sol";
 import {ECDSAUpgradeable} from
     "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol";
 
@@ -248,16 +248,16 @@ contract HelloWorldTaskManagerSetup is Test {
     }
 
     function createTask(TrafficGenerator memory generator, string memory taskName) internal {
-        IHelloWorldServiceManager helloWorldServiceManager =
-            IHelloWorldServiceManager(helloWorldDeployment.helloWorldServiceManager);
+        IadaptAIPolicyAVS helloWorldServiceManager =
+            IadaptAIPolicyAVS(helloWorldDeployment.helloWorldServiceManager);
 
         vm.prank(generator.key.addr);
-        helloWorldServiceManager.createNewTask(taskName);
+        helloWorldServiceManager.createNewTask(taskName, address(0), address(0));
     }
 
     function respondToTask(
         Operator memory operator,
-        IHelloWorldServiceManager.Task memory task,
+        IadaptAIPolicyAVS.Task memory task,
         uint32 referenceTaskIndex
     ) internal {
         // Create the message hash
@@ -272,7 +272,7 @@ contract HelloWorldTaskManagerSetup is Test {
 
         bytes memory signedTask = abi.encode(operators, signatures, uint32(block.number));
 
-        IHelloWorldServiceManager(helloWorldDeployment.helloWorldServiceManager).respondToTask(
+        IadaptAIPolicyAVS(helloWorldDeployment.helloWorldServiceManager).respondToTask(
             task, referenceTaskIndex, signedTask
         );
     }
@@ -312,7 +312,7 @@ contract RegisterOperator is HelloWorldTaskManagerSetup {
 
     IDelegationManager internal delegationManager;
     AVSDirectory internal avsDirectory;
-    IHelloWorldServiceManager internal sm;
+    IadaptAIPolicyAVS internal sm;
     ECDSAStakeRegistry internal stakeRegistry;
 
     function setUp() public virtual override {
@@ -320,7 +320,7 @@ contract RegisterOperator is HelloWorldTaskManagerSetup {
         /// Setting to internal state for convenience
         delegationManager = IDelegationManager(coreDeployment.delegationManager);
         avsDirectory = AVSDirectory(coreDeployment.avsDirectory);
-        sm = IHelloWorldServiceManager(helloWorldDeployment.helloWorldServiceManager);
+        sm = IadaptAIPolicyAVS(helloWorldDeployment.helloWorldServiceManager);
         stakeRegistry = ECDSAStakeRegistry(helloWorldDeployment.stakeRegistry);
 
         addStrategy(address(mockToken));
@@ -368,18 +368,18 @@ contract RegisterOperator is HelloWorldTaskManagerSetup {
 }
 
 contract CreateTask is HelloWorldTaskManagerSetup {
-    IHelloWorldServiceManager internal sm;
+    IadaptAIPolicyAVS internal sm;
 
     function setUp() public override {
         super.setUp();
-        sm = IHelloWorldServiceManager(helloWorldDeployment.helloWorldServiceManager);
+        sm = IadaptAIPolicyAVS(helloWorldDeployment.helloWorldServiceManager);
     }
 
     function testCreateTask() public {
         string memory taskName = "Test Task";
 
         vm.prank(generator.key.addr);
-        IHelloWorldServiceManager.Task memory newTask = sm.createNewTask(taskName);
+        IadaptAIPolicyAVS.Task memory newTask = sm.createNewTask(taskName, address(0), address(0));
 
         require(sha256(abi.encodePacked(newTask.name)) == sha256(abi.encodePacked(taskName)), "Task name not set correctly");
         require(newTask.taskCreatedBlock == uint32(block.number), "Task created block not set correctly");
@@ -395,7 +395,7 @@ contract RespondToTask is HelloWorldTaskManagerSetup {
 
     IDelegationManager internal delegationManager;
     AVSDirectory internal avsDirectory;
-    IHelloWorldServiceManager internal sm;
+    IadaptAIPolicyAVS internal sm;
     ECDSAStakeRegistry internal stakeRegistry;
 
     function setUp() public override {
@@ -403,7 +403,7 @@ contract RespondToTask is HelloWorldTaskManagerSetup {
 
         delegationManager = IDelegationManager(coreDeployment.delegationManager);
         avsDirectory = AVSDirectory(coreDeployment.avsDirectory);
-        sm = IHelloWorldServiceManager(helloWorldDeployment.helloWorldServiceManager);
+        sm = IadaptAIPolicyAVS(helloWorldDeployment.helloWorldServiceManager);
         stakeRegistry = ECDSAStakeRegistry(helloWorldDeployment.stakeRegistry);
 
         addStrategy(address(mockToken));
@@ -425,7 +425,7 @@ contract RespondToTask is HelloWorldTaskManagerSetup {
 
     function testRespondToTask() public {
         string memory taskName = "TestTask";
-        IHelloWorldServiceManager.Task memory newTask = sm.createNewTask(taskName);
+        IadaptAIPolicyAVS.Task memory newTask = sm.createNewTask(taskName, address(0), address(0));
         uint32 taskIndex = sm.latestTaskNum() - 1;
 
         bytes32 messageHash = keccak256(abi.encodePacked("Hello, ", taskName));

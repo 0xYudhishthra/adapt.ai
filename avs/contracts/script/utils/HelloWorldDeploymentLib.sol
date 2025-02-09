@@ -9,7 +9,7 @@ import {console2} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {ECDSAStakeRegistry} from "@eigenlayer-middleware/src/unaudited/ECDSAStakeRegistry.sol";
-import {HelloWorldServiceManager} from "../../src/HelloWorldServiceManager.sol";
+import {adaptAIPolicyAVS} from "../../src/adaptAIPolicyAVS.sol";
 import {IDelegationManager} from "@eigenlayer/contracts/interfaces/IDelegationManager.sol";
 import {Quorum} from "@eigenlayer-middleware/src/interfaces/IECDSAStakeRegistryEventsAndErrors.sol";
 import {UpgradeableProxyLib} from "./UpgradeableProxyLib.sol";
@@ -53,8 +53,8 @@ library HelloWorldDeploymentLib {
         address stakeRegistryImpl =
             address(new ECDSAStakeRegistry(IDelegationManager(core.delegationManager)));
         address helloWorldServiceManagerImpl = address(
-            new HelloWorldServiceManager(
-                core.avsDirectory, result.stakeRegistry, core.rewardsCoordinator, core.delegationManager
+            new adaptAIPolicyAVS(
+                core.avsDirectory, result.stakeRegistry, core.rewardsCoordinator, core.delegationManager, owner
             )
         );
         // Upgrade contracts
@@ -62,7 +62,7 @@ library HelloWorldDeploymentLib {
             ECDSAStakeRegistry.initialize, (result.helloWorldServiceManager, 0, quorum)
         );
         UpgradeableProxyLib.upgradeAndCall(result.stakeRegistry, stakeRegistryImpl, upgradeCall);
-        upgradeCall = abi.encodeCall(HelloWorldServiceManager.initialize, (owner, rewardsInitiator));
+        upgradeCall = abi.encodeCall(adaptAIPolicyAVS.initialize, (owner, rewardsInitiator));
         UpgradeableProxyLib.upgradeAndCall(result.helloWorldServiceManager, helloWorldServiceManagerImpl, upgradeCall);
 
         return result;

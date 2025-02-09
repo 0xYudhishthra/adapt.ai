@@ -6,7 +6,7 @@ import "../script/utils/SetupPaymentsLib.sol";
 import "../script/utils/CoreDeploymentLib.sol";
 import "../script/utils/HelloWorldDeploymentLib.sol";
 import "@eigenlayer/contracts/interfaces/IRewardsCoordinator.sol";
-import "../src/IHelloWorldServiceManager.sol";
+import "../src/IadaptAIPolicyAVS.sol";
 import "@eigenlayer/contracts/interfaces/IStrategy.sol";
 import "@eigenlayer/contracts/libraries/Merkle.sol";
 import "../script/DeployEigenLayerCore.s.sol";
@@ -39,7 +39,7 @@ contract SetupPaymentsLibTest is Test, TestConstants, HelloWorldTaskManagerSetup
 
 
     IRewardsCoordinator public rewardsCoordinator;
-    IHelloWorldServiceManager public helloWorldServiceManager;
+    IadaptAIPolicyAVS public helloWorldServiceManager;
     IStrategy public strategy;
     address proxyAdmin;
 

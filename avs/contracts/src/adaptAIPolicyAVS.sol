@@ -15,15 +15,12 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
  * @title Primary entrypoint for procuring services from HelloWorld.
  * @author Eigen Labs, Inc.
  */
-contract HelloWorldServiceManager is
-    ECDSAServiceManagerBase,
-    IHelloWorldServiceManager
-{
+contract adaptAIPolicyAVS is ECDSAServiceManagerBase, IadaptAIPolicyAVS {
     using ECDSAUpgradeable for bytes32;
 
     uint32 public latestTaskNum;
 
-    address public owner;
+    address public admin;
 
     // mapping of task indices to all tasks hashes
     // when a task is created, task hash is stored here,
@@ -45,8 +42,8 @@ contract HelloWorldServiceManager is
         _;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only the owner can call this function");
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only the admin can call this function");
         _;
     }
 
@@ -55,7 +52,7 @@ contract HelloWorldServiceManager is
         address _stakeRegistry,
         address _rewardsCoordinator,
         address _delegationManager,
-        address _owner
+        address _admin
     )
         ECDSAServiceManagerBase(
             _avsDirectory,
@@ -64,7 +61,7 @@ contract HelloWorldServiceManager is
             _delegationManager
         )
     {
-        owner = _owner;
+        admin = _admin;
     }
 
     function initialize(
@@ -130,7 +127,7 @@ contract HelloWorldServiceManager is
         emit TaskResponded(referenceTaskIndex, task, msg.sender);
     }
 
-    function addVault(address vault) external onlyOwner {
+    function addVault(address vault) external onlyAdmin {
         whitelistedVaults[vault] = true;
     }
 }
