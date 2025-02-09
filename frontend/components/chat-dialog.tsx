@@ -42,7 +42,7 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
     setInput("")
 
     try {
-      const response = await fetch('https://autonome.alt.technology/adapt-ai-ofrszk/chat', {
+      const response = await fetch('https://autonome.alt.technology/adapt-ai-wysygj/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
