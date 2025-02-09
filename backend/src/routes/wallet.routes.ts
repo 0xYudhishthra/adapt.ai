@@ -20,7 +20,7 @@ router.post('/get/multisig', async (req: Request, res: Response) => {
     try {
         const { agentAddress, userAddress } = req.body;
         const wallet = await getMultisigWallet(agentAddress, userAddress);
-        res.json({ success: true, multisig_address: wallet.multisig_address });
+        res.json({ success: true, multisig_address: wallet });
     } catch (error) {
         res.status(500).json({ success: false, error: (error as Error).message });
     }
