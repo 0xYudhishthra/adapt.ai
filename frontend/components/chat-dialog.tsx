@@ -24,11 +24,14 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
   const [multisig, setMultisig] = useState<MultisigWallet | null>(null)
   const [isCreatingMultisig, setIsCreatingMultisig] = useState(false)
   const [teeLogs, setTeeLogs] = useState<TEELog[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
+    setIsLoading(true)
+    
     const newMessage: Message = {
       id: Date.now().toString(),
       content: input,
@@ -39,37 +42,69 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
     setMessages((prev) => [...prev, newMessage])
     setInput("")
 
-    // Simulate AI response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I've analyzed your request. Here's a potential strategy...",
-        role: "assistant",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, response])
+    try {
+      console.log(input)
+      //create a JSON input from the parsed input
+      let parsedInput = JSON.stringify({ message: input })
+      console.log(parsedInput)
 
-      // Simulate strategy proposal
-      setStrategy({
-        id: Date.now().toString(),
-        title: "Yield Farming Strategy",
-        description: "A balanced approach to maximize returns while minimizing risk",
-        steps: ["Deploy capital to stable coin pool", "Monitor APY rates", "Rebalance as needed"],
-        requiredCapital: 1000,
-        status: "draft",
+      const response = await fetch('http://127.0.0.1:3000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input }),
+
       })
 
-      // Simulate TEE log
+      console.log("response is:", response)
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Network response was not ok');
+      }
+
+      const data = await response.json()
+      
+      // Add agent response to messages
+      const agentResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: data.responses.join('\n'), // Join multiple responses if any
+        role: "assistant", 
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, agentResponse])
+
+      // If response includes strategy details, update strategy state
+      if (data.strategy) {
+        setStrategy(data.strategy)
+      }
+
+      // Add to TEE logs
       setTeeLogs((prev) => [
         ...prev,
         {
           timestamp: new Date(),
           level: "info",
-          message: "Strategy analysis completed",
-          data: { confidence: 0.95 },
+          message: "Received agent response",
+          data: { responses: data.responses },
         },
       ])
-    }, 1000)
+
+    } catch (error) {
+      console.error('Error:', error)
+      setTeeLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date(),
+          level: "error",
+          message: "Failed to get agent response",
+          data: { error: String(error) },
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const createMultisigWallet = async () => {
@@ -110,8 +145,22 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
     }
   }
 
+  const handleClose =() => {
+    setMessages([])
+    setInput("")
+    setStrategy(null)
+    setMultisig(null)
+    setTeeLogs([])
+    onOpenChangeAction(false)
+
+    onOpenChangeAction(false)
+  }
   return (
-    <Dialog open={open} onOpenChange={onOpenChangeAction}>
+    <Dialog open={open} onOpenChange={(isOpen) =>{
+      if (!isOpen) {
+        handleClose()
+      }
+    }}>
       <DialogContent className="sm:max-w-[800px]">
         <Tabs defaultValue="chat" className="h-[700px]">
           <TabsList>
@@ -175,8 +224,12 @@ export function ChatDialog({ agent, open, onOpenChangeAction }: ChatDialogProps)
                   placeholder="Type your message..."
                   className="flex-1"
                 />
-                <Button type="submit" size="icon">
-                  <Send className="h-4 w-4" />
+                <Button type="submit" size="icon" disabled={isLoading}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
             </div>
