@@ -750,6 +750,9 @@ video {
 .ml-2 {
   margin-left: 0.5rem;
 }
+.mt-3 {
+  margin-top: 0.75rem;
+}
 .block {
   display: block;
 }
@@ -991,6 +994,9 @@ video {
 .max-w-\[80\%\] {
   max-width: 80%;
 }
+.max-w-\[85\%\] {
+  max-width: 85%;
+}
 .flex-1 {
   flex: 1 1 0%;
 }
@@ -1194,8 +1200,14 @@ video {
 .whitespace-nowrap {
   white-space: nowrap;
 }
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
 .break-words {
   overflow-wrap: break-word;
+}
+.break-all {
+  word-break: break-all;
 }
 .rounded-\[2px\] {
   border-radius: 2px;
@@ -1460,6 +1472,9 @@ video {
 }
 .pl-5 {
   padding-left: 1.25rem;
+}
+.pb-2 {
+  padding-bottom: 0.5rem;
 }
 .text-left {
   text-align: left;

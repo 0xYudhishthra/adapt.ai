@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { Agent, Message, Strategy, TEELog, MultisigWallet } from "@/types"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogTitle, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -24,10 +24,13 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
   const [multisig, setMultisig] = useState<MultisigWallet | null>(null)
   const [isCreatingMultisig, setIsCreatingMultisig] = useState(false)
   const [teeLogs, setTeeLogs] = useState<TEELog[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
+
+    setIsLoading(true)
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -39,42 +42,69 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
     setMessages((prev) => [...prev, newMessage])
     setInput("")
 
-    // Simulate AI response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I've analyzed your request. Here's a potential strategy...",
-        role: "assistant",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, response])
+    try {
+      console.log(input)
+      //create a JSON input from the parsed input
+      let parsedInput = JSON.stringify({ message: input })
+      console.log(parsedInput)
 
-      // Simulate strategy proposal
-      setStrategy({
-        id: Date.now().toString(),
-        title: "Yield Farming Strategy",
-        description:
-          "A balanced approach to maximize returns while minimizing risk",
-        steps: [
-          "Deploy capital to stable coin pool",
-          "Monitor APY rates",
-          "Rebalance as needed",
-        ],
-        requiredCapital: 1000,
-        status: "draft",
+      const response = await fetch('https://autonome.alt.technology/adapt-ai-ofrszk/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input }),
+
       })
 
-      // Simulate TEE log
+      console.log("response is:", response)
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Network response was not ok');
+      }
+
+      const data = await response.json()
+
+      // Add agent response to messages
+      const agentResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: data.responses.join('\n'), // Join multiple responses if any
+        role: "assistant", 
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, agentResponse])
+
+      // If response includes strategy details, update strategy state
+      if (data.strategy) {
+        setStrategy(data.strategy)
+      }
+
+      // Add to TEE logs
       setTeeLogs((prev) => [
         ...prev,
         {
           timestamp: new Date(),
           level: "info",
-          message: "Strategy analysis completed",
-          data: { confidence: 0.95 },
+          message: "Received agent response",
+          data: { responses: data.responses },
         },
       ])
-    }, 1000)
+
+    } catch (error) {
+      console.error('Error:', error)
+      setTeeLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date(),
+          level: "error",
+          message: "Failed to get agent response",
+          data: { error: String(error) },
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const createMultisigWallet = async () => {
@@ -197,15 +227,19 @@ export function ChatDialog({ agent, open, onOpenChange }: ChatDialogProps) {
                 </div>
               </ScrollArea>
 
-              <form onSubmit={handleSend} className="mt-4 flex gap-2 pt-4 border-t">
+              <form onSubmit={handleSend} className="mt-4 flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type your message..."
                   className="flex-1"
                 />
-                <Button type="submit" size="icon">
-                  <Send className="h-4 w-4" />
+                <Button type="submit" size="icon" disabled={isLoading}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
             </div>
