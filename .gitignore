@@ -20,4 +20,4 @@ broadcast/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
-frontend/.next/
+frontend/.next/*
